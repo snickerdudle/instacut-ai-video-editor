@@ -128,7 +128,7 @@ class SamplingPolicyBaseClass:
 
 
 @dataclass
-class VideoProcessingConfig:
+class VideoProcessorConfig:
     """Class for the configuration of a video processing job."""
 
     sampling_policy: Union[SamplingPolicyBaseClass, str]
@@ -141,7 +141,7 @@ class VideoProcessor:
 
     def __init__(
         self,
-        config: VideoProcessingConfig,
+        config: VideoProcessorConfig,
     ) -> None:
         self.config = config
         self.file_processor = FileUtils(output_path=self.config.output_path)
