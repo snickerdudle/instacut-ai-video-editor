@@ -1,16 +1,21 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 
-@dataclass
 class Prompt:
-    text: str
-    aux_text: List[str]
-    input_text: str = ""
+    def __init__(
+        self,
+        prompt_template: str,
+        aux_text: Optional[List[str]] = None,
+        input_text: Optional[str] = "",
+    ):
+        self.prompt_template = prompt_template
+        self.aux_text = aux_text or []
+        self.input_text = input_text
 
     def assemblePrompt(self, input_text: str = "") -> str:
         self.input_text = input_text
-        return self.text.format(self=self)
+        return self.prompt_template.format(self=self)
 
 
 summarization_prompt_1 = (
@@ -19,8 +24,10 @@ summarization_prompt_1 = (
     "detailed section-by-section breakdown of the progression of the video and the "
     "topics discussed. Organize the sections hierarchically, grouping individual "
     "events into larger themes, then into larger ones, and on and on until you've "
-    "grouped everything into the overarching video group. Return the analysis in "
-    "the form of an indented list, imitating the formatting of this example:\n"
+    "grouped everything into the overarching video group. Instead of creating long, "
+    "comma-separated descriptions, bias towards listing the same elements as sub-"
+    "items of the current item. Return the analysis in the form of an indented list, "
+    "imitating the formatting of this example:\n"
     "{self.aux_text[0]}\n\n"
     "VIDEO TRANSCRIPT:\n{self.input_text}"
 )
@@ -54,5 +61,5 @@ summarization_example_1 = """-Video
 -----The secret to ultimate power"""
 
 video_summarization_prompt = Prompt(
-    text=summarization_prompt_1, aux_text=[summarization_example_1]
+    prompt_template=summarization_prompt_1, aux_text=[summarization_example_1]
 )

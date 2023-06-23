@@ -1,22 +1,31 @@
-from dataclasses import dataclass
 import os
+from dataclasses import dataclass
+from typing import List, Optional, Union
+
 import openai
-from prompts import Prompt
-from typing import List, Union, Optional
+
+from instacut.utils.prompts import Prompt
 
 # Get the API key from the environment
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 
 
-@dataclass
 class OpenAIChat:
-    """Class for a video."""
+    """Class for an OpenAI chatbot."""
 
-    prompt: Union[Prompt, str]
-    model: str = "gpt-3.5-turbo"
-    temperature: float = 0.9
-    messages: Optional[List[dict]] = None
-    priming_message: Optional[str] = "You are an intelligent assistant"
+    def __init__(
+        self,
+        prompt: Union[Prompt, str],
+        model: str = "gpt-3.5-turbo",
+        temperature: float = 0.9,
+        messages: Optional[List[dict]] = None,
+        priming_message: Optional[str] = "You are an intelligent assistant",
+    ):
+        self.prompt = Prompt(prompt) if isinstance(prompt, str) else prompt
+        self.model = model
+        self.temperature = temperature
+        self.messages = messages or []
+        self.priming_message = priming_message
 
     def processMessage(self, message: str) -> str:
         """Process a message.
@@ -48,7 +57,6 @@ class OpenAIChat:
         return messages
 
 
-@dataclass
 class OpenAIContinuousChat(OpenAIChat):
     def getMessageHistory(self) -> List[dict]:
         return self.messages

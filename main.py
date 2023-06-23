@@ -1,7 +1,11 @@
-from video_processor import VideoProcessor, VideoProcessorConfig
-from prompts import video_summarization_prompt
 import argparse
-from file_utils import FileUtils
+
+from instacut.modules.video_processor import (
+    VideoProcessor,
+    VideoProcessorConfig,
+)
+from instacut.utils.file_utils import FileUtils
+from instacut.utils.prompts import video_summarization_prompt
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

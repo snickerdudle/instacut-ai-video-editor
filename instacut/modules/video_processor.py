@@ -1,16 +1,18 @@
 """Contains the video download, frame splitting and sampling logic."""
 
+import re
+from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
-from dataclasses import dataclass
 from typing import Any, List, Optional, Union, get_args
+
 from pytube import YouTube
-from llm_utils import OpenAIChat
-from prompts import Prompt
-from youtube_transcript_api import YouTubeTranscriptApi
-import re
-from file_utils import FileUtils
 from tqdm import tqdm
+from youtube_transcript_api import YouTubeTranscriptApi
+
+from instacut.utils.file_utils import FileUtils
+from instacut.utils.llm_utils import OpenAIChat
+from instacut.utils.prompts import Prompt
 
 PathObj = Union[str, Path]
 VideoObj = Union["Video", str]

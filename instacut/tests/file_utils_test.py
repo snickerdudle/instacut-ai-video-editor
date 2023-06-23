@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from file_utils import FileUtils
+from instacut.utils.file_utils import FileUtils
 
 
 class TestUrlAndFile(unittest.TestCase):
