@@ -14,7 +14,7 @@ class Prompt:
         self.input_text = input_text
 
     def assemblePrompt(self, input_text: str = "") -> str:
-        self.input_text = input_text
+        self.input_text = input_text if input_text else self.input_text
         return self.prompt_template.format(self=self)
 
 
