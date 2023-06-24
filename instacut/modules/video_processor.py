@@ -1,5 +1,6 @@
 """Contains the video download, frame splitting and sampling logic."""
 
+import pdb
 import re
 from dataclasses import dataclass
 from functools import cached_property
@@ -18,15 +19,20 @@ PathObj = Union[str, Path]
 VideoObj = Union["Video", str]
 
 
-@dataclass
 class Frame:
     """Class for a frame."""
 
-    name: str
-    parent: Optional[Any]
-    timestamp: float  # in seconds
-    order: int
-    image: Any
+    def __init__(
+        self,
+        image: Any,
+        parent: Optional[Any] = None,
+        timestamp: Optional[float] = None,
+        order: Optional[int] = None,
+    ):
+        self.image = image
+        self.parent = parent
+        self.timestamp = timestamp
+        self.order = order
 
     def save(self, path: PathObj) -> None:
         """Save the frame to a file."""
@@ -105,16 +111,26 @@ class Video:
         """Sample the frames of the video."""
         return sampling_policy.sample(self)
 
-    def getTranscript(self, raw=False) -> str:
+    def getTranscript(self, include_time=False) -> str:
         """Get the transcript of the video."""
         url = self.metadata.url
         url = re.sub(r".*/watch\?v=", "", url)
         transcript = YouTubeTranscriptApi.get_transcript(url)
-        if raw:
-            return transcript
+        if include_time:
+            output_list = []
+            for i in transcript:
+                output_list.append(
+                    "[{}-{}] {}".format(
+                        round(i["start"], 2),
+                        round(i["start"] + i["duration"], 2),
+                        i["text"],
+                    )
+                )
+        else:
+            # Convert the transcript to a string without any of the timestamps.
+            output_list = [i["text"] for i in transcript]
 
-        # Convert the transcript to a string without any of the timestamps.
-        transcript = " ".join(i["text"] for i in transcript)
+        transcript = "\n".join(output_list)
         return transcript
 
 
@@ -148,7 +164,9 @@ class VideoProcessor:
         self.config = config
         self.file_processor = FileUtils(output_path=self.config.output_path)
 
-    def summarize(self, video: Union[VideoObj, List[VideoObj]]) -> int:
+    def summarize(
+        self, video: Union[VideoObj, List[VideoObj]], **kwargs
+    ) -> int:
         """Summarize the video(s).
 
         Args:
@@ -171,6 +189,6 @@ class VideoProcessor:
                 print('File "{}" already exists. Skipping'.format(name))
                 continue
             transcript = video.getTranscript()
-            chat = OpenAIChat(self.config.prompt)
+            chat = OpenAIChat(self.config.prompt, **kwargs)
             summary = chat.processMessage(transcript)
             self.file_processor.saveTextFile(name + ".txt", summary)

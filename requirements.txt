@@ -2,3 +2,4 @@ pytube
 youtube-transcript-api
 openai
 argparse
+opencv-python

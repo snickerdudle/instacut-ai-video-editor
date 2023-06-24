@@ -31,6 +31,20 @@ summarization_prompt_1 = (
     "{self.aux_text[0]}\n\n"
     "VIDEO TRANSCRIPT:\n{self.input_text}"
 )
+
+summarization_prompt_2 = (
+    "Please organize the provided video transcript into a hierarchical outline. "
+    "Each line in the transcript corresponds to a specific level in the outline. "
+    "The lines at the same indentation level should be grouped together. Make "
+    "sure to follow the formatting guidelines below for consistent output:\n\n"
+    "{self.aux_text[0]}\n\n"
+    "Your task is to generate a hierarchical outline for the provided video "
+    "transcript, strictly formatted using the guidelines provided above. Ensure "
+    "that the formatting of section titles and numbering is consistent with the "
+    "guidelines provided above.\n\nExample:{self.aux_text[1]}\n\nTranscript:\n\n"
+    "{self.input_text}"
+)
+
 summarization_example_1 = """-Video
 --Intro
 ---Describing the adventure
@@ -60,6 +74,50 @@ summarization_example_1 = """-Video
 -----The secret to unlimited wealth
 -----The secret to ultimate power"""
 
-video_summarization_prompt = Prompt(
+summarization_example_2 = [
+    """1. Use a dash (-) followed by the number and item name for the main sections.
+2. Use two dashes (--) followed by the number and item name for the subsections.
+3. Use three dashes (---) followed by the number and item name for the sub-subsections.
+4. For each item, include its corresponding number based on the indentation level, for example 2.3.1 being section 2, subsection 3, sub-subsection 1.""",
+    """-1 Introduction
+--1.1 The illusion of the universe
+--1.2 The intergalactic medium as raw materials
+--1.3 Quasars as the most powerful objects in existence
+--1.4 The power of quasars in molding the structure of the universe
+-2 Quasars
+--2.1 The discovery of quasars
+--2.2 Characteristics of quasars
+--2.3 The power source of quasars
+---2.3.1 Supermassive black holes
+---2.3.2 Accretion disks
+---2.3.3 Matter conversion
+--2.4 The incredible power of quasars
+---2.4.1 Feeding habits
+---2.4.2 Energy output greater than stars
+--2.5 Jet formation
+--2.6 Quasar lifespan
+---2.6.1 Effect on galaxies
+---2.6.2 Impact on star formation
+-3 The Milky Way and Quasars
+--3.1 Preserving galactic history
+--3.2 The possibility of the Milky Way being a quasar
+--3.3 The future of Sagittarius A star
+--3.4 The merger of Andromeda
+---3.4.1 Double quasars
+---3.4.2 Future of the Milky Way
+-4 Lessons from Brilliant.org
+--4.1 Interactive learning tool
+--4.2 Black hole lesson
+--4.3 Additional lessons
+-5 Conclusion
+--5.1 Limited edition pin: Dyson Sphere
+--5.2 Future limited edition pins""",
+]
+
+video_summarization_prompt_1 = Prompt(
     prompt_template=summarization_prompt_1, aux_text=[summarization_example_1]
+)
+
+video_summarization_prompt_2 = Prompt(
+    prompt_template=summarization_prompt_2, aux_text=summarization_example_2
 )
