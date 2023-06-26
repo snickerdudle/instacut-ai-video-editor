@@ -18,7 +18,9 @@ class TestPrompt(unittest.TestCase):
         self.assertEqual(assembled_prompt, expected_prompt)
 
     def test_assemblePrompt_aux_text(self):
-        prompt_template = "The input text is: {self.aux_text[0]} {self.aux_text[1]} {self.input_text}"
+        prompt_template = (
+            "The input text is: {self.aux_text[0]} {self.aux_text[1]} {self.input_text}"
+        )
         aux_text = ["Auxiliary Text", "ABC"]
         prompt = Prompt(
             prompt_template=prompt_template,
@@ -49,6 +51,56 @@ class TestPrompt(unittest.TestCase):
 
         expected_prompt = "The input text is: New input"
         self.assertEqual(assembled_prompt, expected_prompt)
+
+
+class TestPromptAdditionalParams(unittest.TestCase):
+    def test_has(self):
+        prompt_template = "The input text is: {self.input_text}"
+        aux_text = ["Auxiliary Text"]
+        prompt = Prompt(
+            prompt_template=prompt_template,
+            aux_text=aux_text,
+            additional_params={"key": "value"},
+        )
+
+        self.assertTrue(prompt.has("key"))
+        self.assertFalse(prompt.has("nonexistent_key"))
+
+    def test_set(self):
+        prompt_template = "The input text is: {self.input_text}"
+        aux_text = ["Auxiliary Text"]
+        prompt = Prompt(
+            prompt_template=prompt_template,
+            aux_text=aux_text,
+            additional_params={"key": "value"},
+        )
+
+        prompt.set("key", "new_value")
+        self.assertEqual(prompt.get("key"), "new_value")
+
+    def test_get(self):
+        prompt_template = "The input text is: {self.input_text}"
+        aux_text = ["Auxiliary Text"]
+        prompt = Prompt(
+            prompt_template=prompt_template,
+            aux_text=aux_text,
+            additional_params={"key": "value"},
+        )
+
+        self.assertEqual(prompt.get("key"), "value")
+        self.assertEqual(prompt.get("nonexistent_key"), None)
+
+    def test_get_default(self):
+        prompt_template = "The input text is: {self.input_text}"
+        aux_text = ["Auxiliary Text"]
+        prompt = Prompt(
+            prompt_template=prompt_template,
+            aux_text=aux_text,
+            additional_params={"key": "value"},
+        )
+
+        self.assertEqual(prompt.get("key"), "value")
+        self.assertIsNone(prompt.get("nonexistent_key"))
 
 
 if __name__ == "__main__":

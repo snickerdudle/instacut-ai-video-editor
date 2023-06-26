@@ -163,4 +163,4 @@ cython_debug/
 
 
 ### Project-specific ignores
-processed/
+data/

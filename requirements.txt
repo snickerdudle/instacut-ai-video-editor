@@ -3,3 +3,11 @@ youtube-transcript-api
 openai
 argparse
 opencv-python
+imutils
+git+https://github.com/huggingface/transformers@main
+protobuf
+accelerate
+pillow
+timm
+matplotlib
+tiktoken
