@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    .scrubber {
+      display: flex;
+      align-items: center;;
+      width:100%
+    }
+
+    .thumbnail {
+      min-width: 128px;
+      min-height: 100px;
+      height: auto;
+      display: flex;
+      justify-content: center;
+        align-items: center;
+        overflow: hidden;
+        flex-direction: column;
+        pointer-events: none;
+    }
+
+    .thumbnail > img {
+        flex-grow: 1;
+        min-width: 100%;
+        min-height: 100%;
+        pointer-events: none;
+    }
+
+    .preview {
+      display: none;
+      position: absolute;
+      width: 320px;
+      height: 200px;
+      background-color: #f1f1f1;
+      border: 4px solid black;
+      pointer-events: none;
+      background-size:     cover;               
+      background-repeat:   no-repeat;
+      background-position: center center; 
+    }
+
+    .scrubber-pointer {
+        position: absolute;
+        width: 6px;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.5);
+        pointer-events: none;
+        display: none;
+      }
+  </style>
+</head>
+<body>
+  <div class="scrubber" onmousemove="showPreview(event)" onmouseleave="clearPreview(event)"></div>
+  <div class="preview"></div>
+
+  <script>
+    // Generate all the numbers of thumbnails, from 0 to 3456 in increments of 72
+    var thumbnail_names = [];
+    for (var i = 0; i <= 31500; i += 75) {
+        thumbnail_names.push(i.toString().padStart(6, '0') + '.jpg');
+    }
+    // Get the number of items in thumbnails
+    var numThumbnails = thumbnail_names.length;
+    <!-- var rel_path = '../data/dune_part_two_official_trailer/frames/uniformseconds_3.0/'; -->
+    var rel_path = '../data/who_killed_nemtsov_new_evidence_/frames/uniformseconds_3.0/'
+    
+    function loadThumbnails() {
+      var scrubber = document.querySelector('.scrubber');
+      var scrubberWidth = scrubber.offsetWidth;
+
+      // Clear existing thumbnails
+      scrubber.innerHTML = '';
+      scrubber_pointer = document.createElement('div');
+      scrubber_pointer.className = 'scrubber-pointer';
+      scrubber.appendChild(scrubber_pointer)
+
+      var numThumbnailsFit = Math.floor(scrubberWidth / 128); // Adjust the number based on thumbnail width and margin
+      var thumbnailWidth = scrubberWidth / numThumbnailsFit;
+
+      for (var i = 0; i < numThumbnailsFit; i++) {
+        var thumbnailIndex = Math.floor((i + 0.5) * (numThumbnails / numThumbnailsFit));
+        var thumbnailUrl = thumbnail_names[thumbnailIndex];
+
+        var thumbnail = document.createElement('div');
+        var thumbnail_img = document.createElement('img');
+        thumbnail_img.src = rel_path + "thumb/" + thumbnailUrl;
+        thumbnail.overflow = 'hidden';
+        
+        thumbnail.className = 'thumbnail';
+        thumbnail.style.width = thumbnailWidth + 'px';
+
+        thumbnail.appendChild(thumbnail_img);
+        scrubber.appendChild(thumbnail);
+      }
+
+      // Adjust the height of the scrubber based on the tallest thumbnail
+      var maxHeight = Math.max.apply(
+        null,
+        Array.from(scrubber.querySelectorAll('.thumbnail')).map(function (thumbnail) {
+          return thumbnail.offsetHeight;
+        })
+      );
+      scrubber.style.height = maxHeight + 'px';
+    }
+
+    window.addEventListener('resize', loadThumbnails);
+    loadThumbnails();
+
+    function showPreview(event) {
+      var previewWidth = 320;
+      var scrubber = document.querySelector('.scrubber');
+      var thumbnails = scrubber.querySelectorAll('.thumbnail');
+      var preview = document.querySelector('.preview');
+      var pointer = document.querySelector('.scrubber-pointer');
+
+      var scrubberRect = scrubber.getBoundingClientRect();
+      var progress = (event.clientX - scrubberRect.left) / scrubberRect.width;
+      var thumbnailIndex = Math.floor(progress * numThumbnails);
+      
+      if (thumbnailIndex >= 0 && thumbnailIndex < numThumbnails) {
+        var thumbnail_url = thumbnail_names[thumbnailIndex];
+        var previewLeft = scrubberRect.left + (progress * (scrubberRect.width - previewWidth));
+        preview.style.left = previewLeft + 'px';
+        preview.style.backgroundImage = 'url("' + rel_path + "preview/" + thumbnail_url + '")';
+        preview.style.display = 'block';
+
+        var pointerLeft = event.clientX - pointer.offsetWidth / 2;
+        pointer.style.left = pointerLeft + 'px';
+        pointer.style.display = 'block';
+        pointer.style.height = scrubber.offsetHeight + 'px';
+      } else {
+        preview.style.display = 'none';
+        pointer.style.display = 'none';
+      }
+    }
+
+    function clearPreview(event) {
+      var preview = document.querySelector('.preview');
+      preview.style.display = 'none';
+      var pointer = document.querySelector('.scrubber-pointer');
+        pointer.style.display = 'none';
+    }
+  </script>
+</body>
+</html>

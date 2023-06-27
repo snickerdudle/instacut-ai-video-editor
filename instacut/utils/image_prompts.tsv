@@ -1,0 +1,35 @@
+ID	Version	Topic	Question	Options	Type
+1	0	Point of view of the frame	What is the point of view in this frame?	[bottom-to-top, head-on, bird's-eye view, close-up, profile, high-angle, low-angle]	ENUM
+2	0	Framing or composition	How is the framing and composition of this frame?	[rule of thirds, centered, off-center, diagonal, symmetrical, asymmetrical]	ENUM
+3	0	Depth of field	What is the depth of field in this frame?	[shallow, deep]	ENUM
+4	0	Lighting conditions	Describe the lighting conditions in this frame	[bright, dim, backlit, overexposed, underexposed]	ENUM
+5	0	Scene type	What type of scene is depicted in this frame?	[indoor, outdoor, nature, urban, landscape, portrait]	ENUM
+6	0	Environmental conditions	What are the environmental conditions in this frame?	[sunny, cloudy, rainy, night, sunset, sunrise]	ENUM
+7	0	Presence of landmarks or recognizable locations	Are there any landmarks or recognizable locations in this frame?		LIST_STR
+8	0	Visual balance or imbalance	Does this frame exhibit visual balance or imbalance?		BOOL
+9	0	Aspect ratio changes within the frame	Are there any aspect ratio changes within this frame?	[letterboxing, pillarboxing, none]	ENUM
+10	0	Foreground-background separation	Is there clear separation between the foreground and background in this frame?		BOOL
+11	0	Horizon line placement	Where is the horizon line placed in this frame?	[high, low, middle]	ENUM
+12	0	Presence of frames within the frame	Are there any frames or frames within the frame in this frame?		LIST_STR
+13	0	Presence of humans, animals, cars, etc.	Are there any humans, animals, cars, or other objects in this frame?		LIST_STR
+14	0	Dominant colors or color palette	What are the dominant colors or color palette in this frame?		LIST_STR
+15	0	Color use	How is color used in this frame?	[black-and-white, grainy, colorful, sepia, vibrant, pastel]	ENUM
+16	0	Visual effects or filters applied	Are there any visual effects or filters applied to this frame?		LIST_STR
+17	0	Image quality	How would you describe the image quality of this frame?	[low, medium, high]	ENUM
+18	0	Visual complexity or clutter	Is this frame visually complex or cluttered?		BOOL
+19	0	Presence of logos or trademarks	Are there any logos or trademarks visible in this frame?		BOOL
+20	0	Facial expressions or emotions of individuals	Describe the facial expressions or emotions of individuals in this frame.		LIST_STR
+21	0	Framing of foreground and background elements	How is the foreground and background framing in this frame?	[balanced, foreground-heavy, background-heavy]	ENUM
+22	0	Symmetry or asymmetry in composition	Is the composition of this frame symmetrical or asymmetrical?	[symmetrical, asymmetrical]	ENUM
+23	0	Visual patterns or textures	Are there any notable visual patterns or textures in this frame?		LIST_STR
+24	0	Use of negative space	Does this frame utilize negative space effectively?		BOOL
+25	0	Presence of action or movement cues	Are there any action or movement cues present in this frame?		LIST_STR
+26	0	Visual density or sparsity	Would you describe this frame as visually dense or sparse?	[dense, sparse]	ENUM
+27	0	Use of leading lines or guiding elements	Does this frame utilize leading lines or guiding elements?		BOOL
+28	0	Presence of special effects or overlays	Are there any special effects or overlays in this frame?		LIST_STR
+29	0	Motion composition of the frame	What is the motion composition of this frame?	[still, mid-motion, fast-moving, slow-moving]	ENUM
+30	0	Possible source of video	What is the likely source of this video?	[cell phone camera, old photograph, high-quality video, surveillance footage, webcam recording]	ENUM
+31	0	Presence of text or subtitles	Is there any text or subtitles present in this frame?		BOOL
+32	0	Aspect ratio	What is the aspect ratio of this frame?	[16:9, 4:3, 1:1, 2.39:1, other, unknown]	ENUM
+33	0	Image sharpness	How would you rate the sharpness of this frame?	[blurry, sharp, soft, focused]	ENUM
+34	0	Image distortion or aberrations	Does this frame exhibit any image distortion or aberrations?		BOOL
