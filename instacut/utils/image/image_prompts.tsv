@@ -9,16 +9,16 @@ ID	Version	Topic	Question	Options	Type
 8	0	Visual balance or imbalance	Does this frame exhibit visual balance or imbalance?		BOOL
 9	0	Aspect ratio changes within the frame	Are there any aspect ratio changes within this frame?	[letterboxing, pillarboxing, none]	ENUM
 10	0	Foreground-background separation	Is there clear separation between the foreground and background in this frame?		BOOL
-11	0	Horizon line placement	Where is the horizon line placed in this frame?	[high, low, middle]	ENUM
+11	0	Horizon line placement	Where is the horizon line placed in this frame?	[high, middle, low]	ENUM
 12	0	Presence of frames within the frame	Are there any frames or frames within the frame in this frame?		LIST_STR
 13	0	Presence of humans, animals, cars, etc.	Are there any humans, animals, cars, or other objects in this frame?		LIST_STR
-14	0	Dominant colors or color palette	What are the dominant colors or color palette in this frame?		LIST_STR
+14	0	Dominant colors or color palette	Are there any dominant colors or a color palette in this frame?		LIST_STR
 15	0	Color use	How is color used in this frame?	[black-and-white, grainy, colorful, sepia, vibrant, pastel]	ENUM
 16	0	Visual effects or filters applied	Are there any visual effects or filters applied to this frame?		LIST_STR
 17	0	Image quality	How would you describe the image quality of this frame?	[low, medium, high]	ENUM
 18	0	Visual complexity or clutter	Is this frame visually complex or cluttered?		BOOL
 19	0	Presence of logos or trademarks	Are there any logos or trademarks visible in this frame?		BOOL
-20	0	Facial expressions or emotions of individuals	Describe the facial expressions or emotions of individuals in this frame.		LIST_STR
+20	0	Facial expressions or emotions of individuals	Are there any facial expressions or emotions of individuals in this frame?		LIST_STR
 21	0	Framing of foreground and background elements	How is the foreground and background framing in this frame?	[balanced, foreground-heavy, background-heavy]	ENUM
 22	0	Symmetry or asymmetry in composition	Is the composition of this frame symmetrical or asymmetrical?	[symmetrical, asymmetrical]	ENUM
 23	0	Visual patterns or textures	Are there any notable visual patterns or textures in this frame?		LIST_STR
@@ -33,3 +33,5 @@ ID	Version	Topic	Question	Options	Type
 32	0	Aspect ratio	What is the aspect ratio of this frame?	[16:9, 4:3, 1:1, 2.39:1, other, unknown]	ENUM
 33	0	Image sharpness	How would you rate the sharpness of this frame?	[blurry, sharp, soft, focused]	ENUM
 34	0	Image distortion or aberrations	Does this frame exhibit any image distortion or aberrations?		BOOL
+35	0	OCR	Is there any text that you can see in the image? If yes, please write it here, otherwise return NA:		STR
+36	0	Category of image	Please categorize the content of the image. What sort of image is this?		STR

@@ -485,6 +485,11 @@ class VideoProcessorConfig:
                 else:
                     return policy(value)
 
+        # If no match, raise an error.
+        raise ValueError(
+            f'The sampling policy "{sampling_policy}" is not valid.'
+        )
+
 
 class VideoProcessor:
     """Class for processing a video or a set of videos."""

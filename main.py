@@ -1,9 +1,14 @@
 import argparse
 
-from instacut.modules.video_processor import VideoProcessor, VideoProcessorConfig
+from instacut.modules.video_processor import (
+    VideoProcessor,
+    VideoProcessorConfig,
+)
 from instacut.utils.file_utils import FileUtils
 from instacut.utils.prompts import video_summarization_prompt_2 as prompt
-from instacut.utils.prompts import video_summarization_prompt_3 as timestamp_prompt
+from instacut.utils.prompts import (
+    video_summarization_prompt_3 as timestamp_prompt,
+)
 
 
 def perform_summarization(cli_input):
@@ -31,7 +36,7 @@ def sample_frames(cli_input, save_frames=False):
     print("Sampling frames...")
     # Create a video processor.
     vp_config = VideoProcessorConfig(
-        sampling_policy="s3",
+        sampling_policy="u8",
         output_dir=r"./data/",
         prompt=timestamp_prompt if args.use_timestamps else prompt,
     )
