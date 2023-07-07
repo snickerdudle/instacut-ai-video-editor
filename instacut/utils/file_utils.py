@@ -171,3 +171,36 @@ class FileUtils:
     def isFile(cls, input_string):
         file_pattern = re.compile(r"^.*\.\w+$")
         return re.match(file_pattern, input_string) is not None
+
+
+class BaseConfig:
+    @classmethod
+    def from_file(cls, path: PathObj):
+        """Loads a config from a file.
+
+        Args:
+            path (PathObj): Path to the file.
+
+        Returns:
+            BaseConfig: The config.
+        """
+        if path is None:
+            print("No config file provided. Using default config.")
+            return cls()
+        if not Path(path).exists():
+            raise ValueError(f"Config file {path} does not exist.")
+
+        with open(path, "r") as f:
+            config = json.load(f)
+
+        # The different portions of the config are stored in different keys. The
+        # key for the config is the class name. Retrieve the key for the config
+        # from the class name.
+        config_key = cls.__name__
+        config = config.get(config_key)
+
+        if config is None:
+            raise ValueError(
+                f"Config file {path} does not contain a config for {config_key}."
+            )
+        return cls(**config)

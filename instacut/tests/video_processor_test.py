@@ -142,7 +142,9 @@ class TestVideoProcessorConfig(unittest.TestCase):
             ("u 12", 12),
             ("u12", 12),
         ]
-        self.sampling_policy_test_helper(test_cases, UniformFramesSamplingPolicy)
+        self.sampling_policy_test_helper(
+            test_cases, UniformFramesSamplingPolicy
+        )
 
     def test_retrieve_sampling_policy_uniform(self):
         test_cases = [
@@ -169,7 +171,9 @@ class TestVideoProcessorConfig(unittest.TestCase):
             ("s 1/10", 1 / 10),
             ("s1/10", 1 / 10),
         ]
-        self.sampling_policy_test_helper(test_cases, UniformSecondsSamplingPolicy)
+        self.sampling_policy_test_helper(
+            test_cases, UniformSecondsSamplingPolicy
+        )
 
 
 class TestVideoProcessor(unittest.TestCase):
@@ -181,30 +185,41 @@ class TestVideoProcessor(unittest.TestCase):
             chat = DummyOpenAIChat.createDummyChat()
             # Create a dummy video processor.
             vp_config = VideoProcessorConfig(
-                sampling_policy="e10",
+                sampling_policy="u10",
                 output_dir=tempdir,
                 prompt=video_summarization_prompt_2,
             )
             vp = VideoProcessor(vp_config)
             # Create a dummy video.
-            input_video = DummyVideo.createDummyVideo("test_for_summarize", tempdir)
+            input_video = DummyVideo.createDummyVideo(
+                "test_for_summarize", tempdir
+            )
             # Summarize the video.
             vp.summarize(input_video, custom_chat=chat, save_transcript=True)
             # Check that the processed directory was created.
             tempdir = Path(tempdir)
             self.assertTrue(tempdir.is_dir())
             self.assertTrue((tempdir / "test_for_summarize").is_dir())
-            self.assertTrue((tempdir / "test_for_summarize" / "transcript").is_dir())
-            self.assertTrue((tempdir / "test_for_summarize" / "summary").is_dir())
+            self.assertTrue(
+                (tempdir / "test_for_summarize" / "transcript").is_dir()
+            )
+            self.assertTrue(
+                (tempdir / "test_for_summarize" / "summary").is_dir()
+            )
 
             # Check that the transcript file was created.
             output_file = (
-                tempdir / "test_for_summarize" / "transcript" / "transcript.txt"
+                tempdir
+                / "test_for_summarize"
+                / "transcript"
+                / "transcript.txt"
             )
             self.assertTrue(output_file.exists())
 
             # Check that the summary file was created.
-            output_file = tempdir / "test_for_summarize" / "summary" / "summary.txt"
+            output_file = (
+                tempdir / "test_for_summarize" / "summary" / "summary.txt"
+            )
             self.assertTrue(output_file.exists())
             # Check that the output file contains the summary (same as transcript for this test).
             with open(output_file, "r") as f:
@@ -222,7 +237,8 @@ class TestSamplingPolicy(unittest.TestCase):
         video_capture = cv2.VideoCapture(self.video_file_path)
         self.assertEqual(video_capture.get(cv2.CAP_PROP_FPS), DUMMY_FPS)
         self.assertEqual(
-            video_capture.get(cv2.CAP_PROP_FRAME_COUNT), DUMMY_FPS * DUMMY_LENGTH
+            video_capture.get(cv2.CAP_PROP_FRAME_COUNT),
+            DUMMY_FPS * DUMMY_LENGTH,
         )
         video_capture.release()
 
@@ -241,7 +257,8 @@ class TestSamplingPolicy(unittest.TestCase):
         self.assertEqual(len(frames), len(expected_indeces))
         for frame, idx in zip(frames, expected_indeces):
             self.assertEqual(
-                frame.image.shape, (DUMMY_RESOLUTION, DUMMY_RESOLUTION * 16 // 9, 3)
+                frame.image.shape,
+                (DUMMY_RESOLUTION, DUMMY_RESOLUTION * 16 // 9, 3),
             )
             self.assertEqual(frame.order, idx)
         video_capture.release()
