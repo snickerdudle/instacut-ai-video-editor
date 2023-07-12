@@ -12,6 +12,7 @@ class Blip2WithCustomGeneration(Blip2ForConditionalGeneration):
         self,
         pixel_values: Optional[torch.FloatTensor] = None,
         image_embeds: Optional[torch.FloatTensor] = None,
+        query_output: Optional[torch.FloatTensor] = None,
         input_ids: Optional[torch.LongTensor] = None,
         attention_mask: Optional[torch.LongTensor] = None,
         **generate_kwargs,
@@ -24,6 +25,8 @@ class Blip2WithCustomGeneration(Blip2ForConditionalGeneration):
                 Input images to be processed. If not supplied, we check for `image_embeds`.
             image_embeds (`torch.FloatTensor` of shape (batch_size, sequence_length, hidden_size), *optional*):
                 The sequence used as a prompt for the generation.
+            query_output (`torch.FloatTensor` of shape (batch_size, sequence_length, hidden_size), *optional*):
+                The pre-processed set of query tokens.
             input_ids (`torch.LongTensor` of shape (batch_size, sequence_length), *optional*):
                 The sequence used as a prompt for the generation.
             attention_mask (`torch.LongTensor` of shape (batch_size, sequence_length), *optional*):
@@ -36,9 +39,13 @@ class Blip2WithCustomGeneration(Blip2ForConditionalGeneration):
             # preprocess for `accelerate`
             self._preprocess_accelerate()
 
-        if pixel_values is None and image_embeds is None:
+        if (
+            pixel_values is None
+            and image_embeds is None
+            and query_output is None
+        ):
             raise ValueError(
-                "You have to specify either pixel_values or image_embeds"
+                "You have to specify either pixel_values or image_embeds or query_output"
             )
 
         if pixel_values is not None:
@@ -46,22 +53,25 @@ class Blip2WithCustomGeneration(Blip2ForConditionalGeneration):
                 pixel_values, return_dict=True
             ).last_hidden_state
 
-        batch_size = image_embeds.shape[0]
+        if query_output is None:
+            image_attention_mask = torch.ones(
+                image_embeds.size()[:-1],
+                dtype=torch.long,
+                device=image_embeds.device,
+            )
 
-        image_attention_mask = torch.ones(
-            image_embeds.size()[:-1],
-            dtype=torch.long,
-            device=image_embeds.device,
-        )
+            query_tokens = self.query_tokens.expand(
+                image_embeds.shape[0], -1, -1
+            )
+            query_outputs = self.qformer(
+                query_embeds=query_tokens,
+                encoder_hidden_states=image_embeds,
+                encoder_attention_mask=image_attention_mask,
+                return_dict=True,
+            )
+            query_output = query_outputs.last_hidden_state
 
-        query_tokens = self.query_tokens.expand(image_embeds.shape[0], -1, -1)
-        query_outputs = self.qformer(
-            query_embeds=query_tokens,
-            encoder_hidden_states=image_embeds,
-            encoder_attention_mask=image_attention_mask,
-            return_dict=True,
-        )
-        query_output = query_outputs.last_hidden_state
+        batch_size = query_output.shape[0]
 
         language_model_inputs = self.language_projection(query_output)
         language_attention_mask = torch.ones(

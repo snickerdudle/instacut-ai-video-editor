@@ -1,8 +1,8 @@
 {
     "ImageUtilsConfig": {
         "device": 0,
-        "batch_size": 128,
-        "preprocessing_batch_size": 12345,
+        "batch_size": 400,
+        "preprocessing_batch_size": 128,
         "image_path": "/data/path/to/image/frames/folder/",
         "image_prompts": "/path/to/image_prompts.tsv",
         "processor": "Salesforce/blip2-flan-t5-xl",
