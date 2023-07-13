@@ -1,6 +1,6 @@
 # Image Utils
 import argparse
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, List, Optional, Union
@@ -8,11 +8,13 @@ from typing import Any, List, Optional, Union
 import numpy as np
 import torch
 from PIL import Image
-from tqdm import tqdm
+from instacut.utils.io_utils import tqdm
 from transformers import Blip2Processor
 
 from instacut.utils.file_utils import BaseConfig
 from instacut.utils.image.models.blip2models import Blip2WithCustomGeneration
+
+from instacut.utils.file_utils import FileUtils, Question
 
 ENUM_ADDITION = " Please select one of the following options, or answer with NA if none apply: "
 BOOL_ADDITION = " Please answer yes or no. "
@@ -79,8 +81,6 @@ def preprocess_images(
         range(0, len(files), preprocessing_batch_size),
         desc="Preprocessing mini-batches",
         unit="mini-batch",
-        leave=False,
-        ncols=80,
     ):
         # Get the image batch. The image batch is a tensor of shape
         # (preprocessing_batch_size, 3, 224, 224)
@@ -96,7 +96,6 @@ def preprocess_images(
             ),
             dtype=torch.uint8,
         ).to(model.device)
-        cur_batch_size = image_batch.shape[0]
 
         # Preprocess the images
         preprocessed_images = processor(
@@ -131,6 +130,53 @@ def preprocess_images(
     # Concatenate the output_list
     query_output = torch.cat(output_list, dim=0)
     return query_output
+
+
+def process_questions(config: ImageUtilsConfig) -> List[Question]:
+    """
+    Parses the questions from the given config file.
+
+    Args:
+        config (ImageUtilsConfig): The config file to parse the questions from.
+
+    Returns:
+        List[Tuple[Question, str]]: The list of questions, along with the parsed
+            question string.
+    """
+    assembled_questions = []
+
+    with open(
+        config.image_prompts,
+        "r",
+    ) as f:
+        questions = [i for i in f.read().strip().split("\n") if i]
+        questions = [i.split("\t") for i in questions[1:]]
+
+    for question_tuple in questions:
+        question = Question(*question_tuple)
+        # For each question, we need to add the appropriate addition to the
+        # question, and then process it with the model
+        parsed_question = question.question
+        if question.type == "ENUM":
+            parsed_question += ENUM_ADDITION
+            parsed_question += question.options
+        elif question.type == "BOOL":
+            parsed_question += BOOL_ADDITION
+        elif question.type == "LIST_STR":
+            parsed_question += LIST_STR_ADDITION
+
+        parsed_question = (
+            "Please answer the following question:\n"
+            + parsed_question
+            + "\nYour answer: "
+        )
+        assembled_questions.append(
+            (
+                question,
+                parsed_question,
+            )
+        )
+    return assembled_questions
 
 
 @torch.no_grad()
@@ -169,15 +215,6 @@ def main(config: ImageUtilsConfig):
     preprocessing_batch_size = min(preprocessing_batch_size, len(files))
     print(f"Using batch size {preprocessing_batch_size} for preprocessing.")
 
-    ## PROMPTS
-    # Now get the prompts and compile them into complete questions
-    with open(
-        config.image_prompts,
-        "r",
-    ) as f:
-        questions = [i for i in f.read().strip().split("\n") if i]
-        questions = [i.split("\t") for i in questions[1:]]
-
     ## IMAGE PREPROCESSING
     # Get the query outputs for all the images
     query_output = preprocess_images(
@@ -187,39 +224,20 @@ def main(config: ImageUtilsConfig):
         preprocessing_batch_size,
     )
 
+    ## QUESTION PROCESSING
     results_dict = defaultdict(list)
-    for q_id, _, topic, question, options, q_type in tqdm(
-        questions,
+    results_list = []
+    for question_obj, parsed_question in tqdm(
+        process_questions(config),
         desc="Processing questions",
         unit="qs",
-        leave=False,
-        ncols=80,
     ):
-        # For each question, we need to add the appropriate addition to the
-        # question, and then process it with the model
-        parsed_question = question
-        if q_type == "ENUM":
-            parsed_question += ENUM_ADDITION
-            parsed_question += options
-        elif q_type == "BOOL":
-            parsed_question += BOOL_ADDITION
-        elif q_type == "LIST_STR":
-            parsed_question += LIST_STR_ADDITION
-
-        parsed_question = (
-            "Please answer the following question:\n"
-            + parsed_question
-            + "\nYour answer: "
-        )
-
         # Get the batch size correctly configured
         batch_size = min(config.batch_size, query_output.shape[0])
         for batch_idx in tqdm(
             range(0, query_output.shape[0], batch_size),
-            desc=f"Processing batches for q({q_id})",
+            desc=f"Processing batches for q({question_obj.id})",
             unit="batch",
-            leave=False,
-            ncols=80,
         ):
             cur_batch_size = min(batch_size, query_output.shape[0] - batch_idx)
             # Get the text encoding for the query
@@ -242,17 +260,14 @@ def main(config: ImageUtilsConfig):
             generated_text = processor.batch_decode(
                 predictions, skip_special_tokens=True
             )
-            results_dict[q_id] += generated_text[:]
-            # del text_encoding, predictions, generated_text
+            results_dict[question_obj.id] += generated_text[:]
+        results_list.append((question_obj, results_dict[question_obj.id]))
 
-    print(len(results_dict))
-    # Constant image compute speed just with processor:
-    #   1.54 s per 128 images = 83.1 images per second
-    # Constant image compute speed with processor and model:
-    #   2.91 s per 128 images = 43.9 images per second
-
-    # Constant question compute speed with processor and model (with preprocessing):
-    #   2.2 s per 545 images = 247.7 images per second
+    # Save the results to a file
+    FileUtils.saveFrameQuestions(
+        full_path=Path(config.image_path) / "questions" / "questions.json",
+        questions=results_list,
+    )
 
 
 if __name__ == "__main__":

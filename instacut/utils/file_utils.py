@@ -1,10 +1,16 @@
 import json
+import pickle
 import re
+from collections import namedtuple
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, List, Union
+from typing import Any, List, Tuple, Union
 
 PathObj = Union[str, Path]
+Question = namedtuple(
+    "Question",
+    ["id", "version", "topic", "question", "options", "type"],
+)
 
 
 @dataclass
@@ -147,6 +153,68 @@ class FileUtils:
         for frame in frames:
             frame.saveToDir(frames_dir)
         return frames_dir
+
+    @classmethod
+    def saveFrameQuestions(
+        cls, full_path: PathObj, questions: List[Tuple[namedtuple, List[str]]]
+    ) -> Path:
+        """Saves the frame questions as a JSON or pickle file.
+
+        Args:
+            full_path (PathObj): The full path to the file. Can be a JSON or
+                pickle file.
+            questions (List[Tuple[namedtuple, List[str]]]): The questions and
+            their answers.
+
+        Returns:
+            Path: The path to the saved questions.
+        """
+        # The questions are a list of (namedtuple, answers) tuples.
+        # The namedtuple is a dataclass, so we can't save it as JSON. We need
+        # to convert it to a list first.
+        questions_serialized = [(list(q), answers) for q, answers in questions]
+
+        full_path = Path(full_path)
+        full_path.parent.mkdir(parents=True, exist_ok=True)
+        save_as_pickle = full_path.suffix != ".json"
+        if save_as_pickle:
+            with open(full_path, "wb") as f:
+                pickle.dump(questions_serialized, f)
+        else:
+            with open(full_path, "w") as f:
+                json.dump(questions_serialized, f, indent=4)
+
+    @classmethod
+    def loadFrameQuestions(
+        cls, full_path: PathObj
+    ) -> List[Tuple[namedtuple, List[str]]]:
+        """Loads the frame questions from a JSON or pickle file.
+
+        Args:
+            full_path (PathObj): The full path to the file.
+            load_as_pickle (bool, optional): Whether to load as a pickle file.
+
+        Returns:
+            List[Tuple[namedtuple, List[str]]]: The questions and their answers.
+        """
+        full_path = Path(full_path)
+        load_as_pickle = full_path.suffix != ".json"
+        if load_as_pickle:
+            with open(full_path, "rb") as f:
+                questions_serialized = pickle.load(f)
+        else:
+            with open(full_path, "r") as f:
+                questions_serialized = json.load(f)
+
+        # The questions are a list of (namedtuple, answers) tuples.
+        # The namedtuple is a dataclass, so we can't save it as JSON. We need
+        # to convert it to a list first.
+        questions = []
+        for q, answers in questions_serialized:
+            # Convert the list back to a namedtuple
+            q = Question(*q)
+            questions.append((q, answers))
+        return questions
 
     @classmethod
     def loadUrlsFromFile(cls, path: PathObj) -> list:

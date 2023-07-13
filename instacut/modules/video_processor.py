@@ -11,7 +11,7 @@ from typing import Any, List, Optional, Union
 import cv2
 import imutils
 from pytube import YouTube
-from tqdm import tqdm
+from instacut.utils.io_utils import tqdm
 from youtube_transcript_api import YouTubeTranscriptApi
 
 from instacut.modules.transcript_processor import (
@@ -287,9 +287,7 @@ class SamplingPolicyBaseClass:
         indeces = self.getSamplingIndeces(video_capture)
         output_frames = []
 
-        for frame_index in tqdm(
-            indeces, desc="Sampling frames", unit="frame", leave=False
-        ):
+        for frame_index in tqdm(indeces, desc="Sampling frames", unit="frame"):
             video_capture.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
             success, image = video_capture.read()
             if not success:
@@ -526,9 +524,7 @@ class VideoProcessor:
         videos = Video.convertAllToVideo(
             video, output_dir=Path(self.config.output_dir)
         )
-        for video in tqdm(
-            videos, desc="Summarizing videos", unit="video", leave=False
-        ):
+        for video in tqdm(videos, desc="Summarizing videos", unit="video"):
             name = video.get_unix_name()
             # Check if exists already to not burn through API calls.
             if (Path(self.config.output_dir) / (name + ".txt")).exists():

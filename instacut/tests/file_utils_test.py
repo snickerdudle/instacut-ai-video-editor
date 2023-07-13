@@ -1,10 +1,11 @@
-from dataclasses import dataclass
+import json
+import pickle
 import tempfile
-from typing import Any
 import unittest
-from unittest.mock import patch, MagicMock
-
+from collections import namedtuple
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from instacut.utils.file_utils import FileUtils
 
@@ -155,6 +156,62 @@ class TestFileUtils(unittest.TestCase):
         frame_path = expected_path / "frame.jpg"
         with open(frame_path, "r") as f:
             self.assertEqual(f.read(), "frame")
+
+    def frameQuestionHelper(self, save_as_pickle: bool):
+        Question = namedtuple(
+            "Question",
+            ["id", "version", "topic", "question", "options", "type"],
+        )
+        questions = [
+            (Question(1, 2, 3, 4, 5, 6), ["q_1_answer_1", "q_1_answer_2"]),
+            (
+                Question("a", "b", "c", "d", "e", "f"),
+                ["q_2_answer_1", "q_2_answer_2"],
+            ),
+        ]
+
+        file_path = (
+            Path(self.test_dir.name)
+            / f"questions.{'pickle' if save_as_pickle else 'json'}"
+        )
+        FileUtils.saveFrameQuestions(
+            full_path=file_path,
+            questions=questions,
+            save_as_pickle=save_as_pickle,
+        )
+        return questions, file_path
+
+    def test_saveFrameQuestions(self):
+        # Try the JSON format
+        questions, file_path = self.frameQuestionHelper(save_as_pickle=False)
+        self.assertTrue(file_path.exists())
+        with open(file_path, "r") as f:
+            saved_data = json.load(f)
+        for q, s in zip(questions, saved_data):
+            self.assertEqual(list(q[0]), s[0])
+            self.assertEqual(q[1], s[1])
+
+        # Try the Pickle format
+        questions, file_path = self.frameQuestionHelper(save_as_pickle=True)
+        self.assertTrue(file_path.exists())
+        with open(file_path, "rb") as f:
+            saved_data = pickle.load(f)
+        for q, s in zip(questions, saved_data):
+            self.assertEqual(list(q[0]), s[0])
+            self.assertEqual(q[1], s[1])
+
+    def test_loadFrameQuestions(self):
+        # Try the JSON format
+        questions, file_path = self.frameQuestionHelper(save_as_pickle=False)
+        self.assertTrue(file_path.exists())
+        questions_loaded = FileUtils.loadFrameQuestions(file_path)
+        self.assertEqual(questions_loaded, questions)
+
+        # Try the Pickle format
+        questions, file_path = self.frameQuestionHelper(save_as_pickle=True)
+        self.assertTrue(file_path.exists())
+        questions_loaded = FileUtils.loadFrameQuestions(file_path)
+        self.assertEqual(questions_loaded, questions)
 
 
 if __name__ == "__main__":
