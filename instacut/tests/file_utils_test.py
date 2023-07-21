@@ -177,7 +177,6 @@ class TestFileUtils(unittest.TestCase):
         FileUtils.saveFrameQuestions(
             full_path=file_path,
             questions=questions,
-            save_as_pickle=save_as_pickle,
         )
         return questions, file_path
 

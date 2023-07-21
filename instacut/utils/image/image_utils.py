@@ -54,220 +54,231 @@ class ImageUtilsConfig(BaseConfig):
         self.model = model
 
 
-@torch.no_grad()
-def preprocess_images(
-    processor: Any,
-    model: Any,
-    files: List[PathObj],
-    preprocessing_batch_size: int,
-):
-    """
-    Preprocesses the images in the given list of files.
+class ImageUtils:
+    def __init__(self, config: ImageUtilsConfig):
+        self.config = config
 
-    Args:
-        processor (Any): The processor to use
-        model (Any): The model to use
-        files (List[PathObj]): The list of files to preprocess
-        preprocessing_batch_size (int): The number of images to simultaneously preprocess
+        # Initialize the processor and model
+        self.processor = Blip2Processor.from_pretrained(config.processor)
+        device_map = {
+            "query_tokens": config.device,
+            "vision_model": config.device,
+            "language_model": config.device,
+            "language_projection": config.device,
+            "qformer": config.device,
+        }
+        self.model = Blip2WithCustomGeneration.from_pretrained(
+            config.model,
+            device_map=device_map,
+            torch_dtype=torch.float16,
+        )
 
-    Returns:
-        query_output (torch.FloatTensor): The preprocessed set of query tokens
-    """
-    print("Preprocessing images...")
-    # Here we need to process the images in preprocessing_batch_size chunks,
-    # because otherwise we will run out of memory
-    output_list = []
-    for image_start_idx in tqdm(
-        range(0, len(files), preprocessing_batch_size),
-        desc="Preprocessing mini-batches",
-        unit="mini-batch",
+    @torch.no_grad()
+    def query_from_input_image(
+        self,
+        files: List[PathObj],
+        preprocessing_batch_size: int,
     ):
-        # Get the image batch. The image batch is a tensor of shape
-        # (preprocessing_batch_size, 3, 224, 224)
-        image_batch = torch.tensor(
-            np.stack(
-                [
-                    np.array(Image.open(i))
-                    for i in files[
-                        image_start_idx : image_start_idx
-                        + preprocessing_batch_size
-                    ]
-                ]
-            ),
-            dtype=torch.uint8,
-        ).to(model.device)
+        """
+        Preprocesses the images in the given list of files, then generates the query
+        tokens for each image.
 
-        # Preprocess the images
-        preprocessed_images = processor(
-            images=image_batch,
-            return_tensors="pt",
-        ).to(model.device, torch.float16)
+        Args:
+            files (List[PathObj]): The list of files to preprocess
+            preprocessing_batch_size (int): The number of images to simultaneously preprocess
 
-        # Get the image embeddings from the pixel_values
-        image_embeds = model.vision_model(
-            pixel_values=preprocessed_images.pixel_values,
-            return_dict=True,
-        ).last_hidden_state
-
-        # Generate the query_outputs
-        image_attention_mask = torch.ones(
-            image_embeds.size()[:-1],
-            dtype=torch.long,
-            device=image_embeds.device,
-        )
-        query_tokens = model.query_tokens.expand(image_embeds.shape[0], -1, -1)
-        query_outputs = model.qformer(
-            query_embeds=query_tokens,
-            encoder_hidden_states=image_embeds,
-            encoder_attention_mask=image_attention_mask,
-            return_dict=True,
-        )
-        query_output = query_outputs.last_hidden_state
-
-        # Add the query_output to the output_list
-        output_list.append(query_output)
-
-    # Concatenate the output_list
-    query_output = torch.cat(output_list, dim=0)
-    return query_output
-
-
-def process_questions(config: ImageUtilsConfig) -> List[Question]:
-    """
-    Parses the questions from the given config file.
-
-    Args:
-        config (ImageUtilsConfig): The config file to parse the questions from.
-
-    Returns:
-        List[Tuple[Question, str]]: The list of questions, along with the parsed
-            question string.
-    """
-    assembled_questions = []
-
-    with open(
-        config.image_prompts,
-        "r",
-    ) as f:
-        questions = [i for i in f.read().strip().split("\n") if i]
-        questions = [i.split("\t") for i in questions[1:]]
-
-    for question_tuple in questions:
-        question = Question(*question_tuple)
-        # For each question, we need to add the appropriate addition to the
-        # question, and then process it with the model
-        parsed_question = question.question
-        if question.type == "ENUM":
-            parsed_question += ENUM_ADDITION
-            parsed_question += question.options
-        elif question.type == "BOOL":
-            parsed_question += BOOL_ADDITION
-        elif question.type == "LIST_STR":
-            parsed_question += LIST_STR_ADDITION
-
-        parsed_question = (
-            "Please answer the following question:\n"
-            + parsed_question
-            + "\nYour answer: "
-        )
-        assembled_questions.append(
-            (
-                question,
-                parsed_question,
-            )
-        )
-    return assembled_questions
-
-
-@torch.no_grad()
-def main(config: ImageUtilsConfig):
-    processor = Blip2Processor.from_pretrained(config.processor)
-    device_map = {
-        "query_tokens": config.device,
-        "vision_model": config.device,
-        "language_model": config.device,
-        "language_projection": config.device,
-        "qformer": config.device,
-    }
-    model = Blip2WithCustomGeneration.from_pretrained(
-        config.model,
-        device_map=device_map,
-        torch_dtype=torch.float16,
-    )
-
-    ## INPUT FILES
-    # Start by assembling the input files
-    image_path = Path(config.image_path)
-    # Get all the jpg files in that directory using "*.jpg" glob
-    files = [_ for _ in sorted(image_path.glob("*.jpg"))]
-    print(f"Found {len(files)} images in {image_path}.")
-
-    ## BATCH SIZING
-    # Get the correct batch size for processing the images. Too high will cause
-    # memory errors, too low will cause the model to run slowly.
-    if config.preprocessing_batch_size > 0:
-        preprocessing_batch_size = min(
-            config.preprocessing_batch_size, config.batch_size
-        )
-    else:
-        preprocessing_batch_size = config.batch_size
-    # Make sure we don't try to process more images than we have
-    preprocessing_batch_size = min(preprocessing_batch_size, len(files))
-    print(f"Using batch size {preprocessing_batch_size} for preprocessing.")
-
-    ## IMAGE PREPROCESSING
-    # Get the query outputs for all the images
-    query_output = preprocess_images(
-        processor,
-        model,
-        files,
-        preprocessing_batch_size,
-    )
-
-    ## QUESTION PROCESSING
-    results_dict = defaultdict(list)
-    results_list = []
-    for question_obj, parsed_question in tqdm(
-        process_questions(config),
-        desc="Processing questions",
-        unit="qs",
-    ):
-        # Get the batch size correctly configured
-        batch_size = min(config.batch_size, query_output.shape[0])
-        for batch_idx in tqdm(
-            range(0, query_output.shape[0], batch_size),
-            desc=f"Processing batches for q({question_obj.id})",
-            unit="batch",
+        Returns:
+            query_output (torch.FloatTensor): The preprocessed set of query tokens
+        """
+        print("Preprocessing images...")
+        # Here we need to process the images in preprocessing_batch_size chunks,
+        # because otherwise we will run out of memory
+        output_list = []
+        for image_start_idx in tqdm(
+            range(0, len(files), preprocessing_batch_size),
+            desc="Preprocessing mini-batches",
+            unit="mini-batch",
         ):
-            cur_batch_size = min(batch_size, query_output.shape[0] - batch_idx)
-            # Get the text encoding for the query
-            text_encoding = processor(
-                text=[parsed_question] * cur_batch_size,
+            # Get the image batch. The image batch is a tensor of shape
+            # (preprocessing_batch_size, 3, 224, 224)
+            image_batch = torch.tensor(
+                np.stack(
+                    [
+                        np.array(Image.open(i))
+                        for i in files[
+                            image_start_idx : image_start_idx
+                            + preprocessing_batch_size
+                        ]
+                    ]
+                ),
+                dtype=torch.uint8,
+            ).to(self.model.device)
+
+            # Preprocess the images
+            preprocessed_images = self.processor(
+                images=image_batch,
                 return_tensors="pt",
-            ).to(model.device)
+            ).to(self.model.device, torch.float16)
 
-            # Generate the embeddings
-            predictions = model.generate(
-                query_output=query_output[batch_idx : batch_idx + batch_size],
-                input_ids=text_encoding.input_ids,
-                attention_mask=text_encoding.attention_mask,
-                max_new_tokens=30,
-            )
-            # The generated text is a list of strings, one for each input frame.
-            # Since every iteration asks only a single question (repeated BATCH
-            # times), all of these returned strings are answering the same question.
-            # We need to aggregate these so they can be dumped to a file later.
-            generated_text = processor.batch_decode(
-                predictions, skip_special_tokens=True
-            )
-            results_dict[question_obj.id] += generated_text[:]
-        results_list.append((question_obj, results_dict[question_obj.id]))
+            # Get the image embeddings from the pixel_values
+            image_embeds = self.model.vision_model(
+                pixel_values=preprocessed_images.pixel_values,
+                return_dict=True,
+            ).last_hidden_state
 
-    # Save the results to a file
-    FileUtils.saveFrameQuestions(
-        full_path=Path(config.image_path) / "questions" / "questions.json",
-        questions=results_list,
-    )
+            # Generate the query_outputs
+            image_attention_mask = torch.ones(
+                image_embeds.size()[:-1],
+                dtype=torch.long,
+                device=image_embeds.device,
+            )
+            query_tokens = self.model.query_tokens.expand(
+                image_embeds.shape[0], -1, -1
+            )
+            query_outputs = self.model.qformer(
+                query_embeds=query_tokens,
+                encoder_hidden_states=image_embeds,
+                encoder_attention_mask=image_attention_mask,
+                return_dict=True,
+            )
+            query_output = query_outputs.last_hidden_state
+
+            # Add the query_output to the output_list
+            output_list.append(query_output)
+
+        # Concatenate the output_list
+        query_output = torch.cat(output_list, dim=0)
+        return query_output
+
+    def ingest_questions(
+        self, config: Optional[ImageUtilsConfig] = None
+    ) -> List[Question]:
+        """
+        Parses the questions from the given config file.
+
+        Args:
+            config (Optional[ImageUtilsConfig], optional): The config to use. Defaults to None.
+
+        Returns:
+            List[Tuple[Question, str]]: The list of questions, along with the parsed
+                question string.
+        """
+        assembled_questions = []
+        config = config or self.config
+
+        with open(
+            config.image_prompts,
+            "r",
+        ) as f:
+            questions = [i for i in f.read().strip().split("\n") if i]
+            questions = [i.split("\t") for i in questions[1:]]
+
+        for question_tuple in questions:
+            question = Question(*question_tuple)
+            # For each question, we need to add the appropriate addition to the
+            # question, and then process it with the model
+            parsed_question = question.question
+            if question.type == "ENUM":
+                parsed_question += ENUM_ADDITION
+                parsed_question += question.options
+            elif question.type == "BOOL":
+                parsed_question += BOOL_ADDITION
+            elif question.type == "LIST_STR":
+                parsed_question += LIST_STR_ADDITION
+
+            parsed_question = (
+                "Please answer the following question:\n"
+                + parsed_question
+                + "\nYour answer: "
+            )
+            assembled_questions.append(
+                (
+                    question,
+                    parsed_question,
+                )
+            )
+        return assembled_questions
+
+    def generate_answers(self):
+        ## INPUT FILES
+        # Start by assembling the input files
+        image_path = Path(self.config.image_path)
+        # Get all the jpg files in that directory using "*.jpg" glob
+        files = [_ for _ in sorted(image_path.glob("*.jpg"))]
+        print(f"Found {len(files)} images in {image_path}.")
+
+        ## BATCH SIZING
+        # Get the correct batch size for processing the images. Too high will cause
+        # memory errors, too low will cause the model to run slowly.
+        if self.config.preprocessing_batch_size > 0:
+            preprocessing_batch_size = min(
+                self.config.preprocessing_batch_size, self.config.batch_size
+            )
+        else:
+            preprocessing_batch_size = self.config.batch_size
+        # Make sure we don't try to process more images than we have
+        preprocessing_batch_size = min(preprocessing_batch_size, len(files))
+        print(
+            f"Using batch size {preprocessing_batch_size} for preprocessing."
+        )
+
+        ## IMAGE PREPROCESSING
+        # Get the query outputs for all the images
+        query_output = self.query_from_input_image(
+            files,
+            preprocessing_batch_size,
+        )
+
+        ## QUESTION PROCESSING
+        results_dict = defaultdict(list)
+        results_list = []
+        for question_obj, parsed_question in tqdm(
+            self.ingest_questions(),
+            desc="Processing questions",
+            unit="qs",
+        ):
+            # Get the batch size correctly configured
+            batch_size = min(self.config.batch_size, query_output.shape[0])
+            for batch_idx in tqdm(
+                range(0, query_output.shape[0], batch_size),
+                desc=f"Processing batches for q({question_obj.id})",
+                unit="batch",
+            ):
+                cur_batch_size = min(
+                    batch_size, query_output.shape[0] - batch_idx
+                )
+                # Get the text encoding for the query
+                text_encoding = self.processor(
+                    text=[parsed_question] * cur_batch_size,
+                    return_tensors="pt",
+                ).to(self.model.device)
+
+                # Generate the embeddings
+                predictions = self.model.generate(
+                    query_output=query_output[
+                        batch_idx : batch_idx + batch_size
+                    ],
+                    input_ids=text_encoding.input_ids,
+                    attention_mask=text_encoding.attention_mask,
+                    max_new_tokens=30,
+                )
+                # The generated text is a list of strings, one for each input frame.
+                # Since every iteration asks only a single question (repeated BATCH
+                # times), all of these returned strings are answering the same question.
+                # We need to aggregate these so they can be dumped to a file later.
+                generated_text = self.processor.batch_decode(
+                    predictions, skip_special_tokens=True
+                )
+                results_dict[question_obj.id] += generated_text[:]
+            results_list.append((question_obj, results_dict[question_obj.id]))
+
+        # Save the results to a file
+        FileUtils.saveFrameQuestions(
+            full_path=Path(self.config.image_path)
+            / "questions"
+            / "questions.json",
+            questions=results_list,
+        )
 
 
 if __name__ == "__main__":
@@ -285,4 +296,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    main(ImageUtilsConfig.from_file(args.config))
+    # Initialize the image utils and generate answers
+    image_utils = ImageUtils(ImageUtilsConfig.from_file(args.config))
+    image_utils.generate_answers()
