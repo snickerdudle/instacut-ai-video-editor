@@ -1,6 +1,6 @@
 import unittest
-from typing import List, Optional
-from instacut.utils.prompts import Prompt
+
+from instacut.utils.prompts.prompts import Prompt
 
 
 class TestPrompt(unittest.TestCase):
@@ -18,9 +18,7 @@ class TestPrompt(unittest.TestCase):
         self.assertEqual(assembled_prompt, expected_prompt)
 
     def test_assemblePrompt_aux_text(self):
-        prompt_template = (
-            "The input text is: {self.aux_text[0]} {self.aux_text[1]} {self.input_text}"
-        )
+        prompt_template = "The input text is: {self.aux_text[0]} {self.aux_text[1]} {self.input_text}"
         aux_text = ["Auxiliary Text", "ABC"]
         prompt = Prompt(
             prompt_template=prompt_template,

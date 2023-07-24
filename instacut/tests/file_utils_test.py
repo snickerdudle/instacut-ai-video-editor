@@ -1,13 +1,14 @@
 import json
+import os
 import pickle
 import tempfile
 import unittest
 from collections import namedtuple
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
-from instacut.utils.file_utils import FileUtils
+from instacut.utils.file_utils import BaseConfig, FileUtils
 
 
 class TestUrlAndFile(unittest.TestCase):
@@ -211,6 +212,134 @@ class TestFileUtils(unittest.TestCase):
         self.assertTrue(file_path.exists())
         questions_loaded = FileUtils.loadFrameQuestions(file_path)
         self.assertEqual(questions_loaded, questions)
+
+
+class TestBaseConfig(unittest.TestCase):
+    def setUp(self):
+        self.base_config = BaseConfig(foo="bar", baz=42)
+
+    def test_initialization(self):
+        self.assertEqual(self.base_config["foo"], "bar")
+        self.assertEqual(self.base_config["baz"], 42)
+
+    def test_contains(self):
+        self.assertTrue("foo" in self.base_config)
+        self.assertFalse("nonexistent" in self.base_config)
+
+    def test_from_dict(self):
+        dict_config = {"BaseConfig": {"foo": "bar", "baz": 42}}
+        new_config = BaseConfig.from_dict(dict_config)
+        self.assertEqual(new_config["foo"], "bar")
+        self.assertEqual(new_config["baz"], 42)
+
+    def test_from_file(self):
+        # create a temporary json file
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_dir = Path(temp_dir)
+            with open(temp_dir / "temp.json", "w") as f:
+                json.dump({"BaseConfig": {"foo": "bar", "baz": 42}}, f)
+
+            new_config = BaseConfig.from_file(temp_dir / "temp.json")
+            self.assertEqual(new_config["foo"], "bar")
+            self.assertEqual(new_config["baz"], 42)
+
+    def test_from_parent_config(self):
+        parent = BaseConfig()
+        parent.subconfigs = {"BaseConfig": {"foo": "bar", "baz": 42}}
+
+        child_config = BaseConfig.from_parent_config(parent)
+        self.assertEqual(child_config["foo"], "bar")
+        self.assertEqual(child_config["baz"], 42)
+
+    def test_repr(self):
+        # since subconfigs is excluded from repr, an empty string is expected
+        self.assertEqual(repr(self.base_config), "BaseConfig()")
+
+    def tearDown(self):
+        self.base_config = None
+
+
+class ChildConfig(BaseConfig):
+    def __init__(
+        self,
+        is_active: Optional[bool] = True,
+        name: Optional[str] = "Child",
+        age: Optional[int] = 0,
+        **kwargs,
+    ):
+        self.is_active = is_active
+        self.name = name
+        self.age = age
+        super().__init__(**kwargs)
+
+
+class TestChildConfig(unittest.TestCase):
+    def setUp(self):
+        self.child_config = ChildConfig(
+            is_active=True, name="Test", age=10, foo="bar", baz=42
+        )
+
+    def test_initialization(self):
+        # Test own variables
+        self.assertEqual(self.child_config.is_active, True)
+        self.assertEqual(self.child_config.name, "Test")
+        self.assertEqual(self.child_config.age, 10)
+
+        # Test subconfigs
+        self.assertEqual(self.child_config["foo"], "bar")
+        self.assertEqual(self.child_config["baz"], 42)
+
+    def test_from_dict(self):
+        dict_config = {
+            "ChildConfig": {
+                "is_active": True,
+                "name": "Test",
+                "age": 10,
+                "foo": "bar",
+                "baz": 42,
+            }
+        }
+        new_config = ChildConfig.from_dict(dict_config)
+
+        # Test own variables
+        self.assertEqual(new_config.is_active, True)
+        self.assertEqual(new_config.name, "Test")
+        self.assertEqual(new_config.age, 10)
+
+        # Test subconfigs
+        self.assertEqual(new_config["foo"], "bar")
+        self.assertEqual(new_config["baz"], 42)
+
+    def test_from_parent_config(self):
+        parent = BaseConfig()
+        parent.subconfigs = {
+            "ChildConfig": {
+                "is_active": True,
+                "name": "Test",
+                "age": 10,
+                "foo": "bar",
+                "baz": 42,
+            }
+        }
+
+        child_config = ChildConfig.from_parent_config(parent)
+
+        # Test own variables
+        self.assertEqual(child_config.is_active, True)
+        self.assertEqual(child_config.name, "Test")
+        self.assertEqual(child_config.age, 10)
+
+        # Test subconfigs
+        self.assertEqual(child_config["foo"], "bar")
+        self.assertEqual(child_config["baz"], 42)
+
+    def test_repr(self):
+        # subconfigs is excluded from repr, only the object's own variables should be included
+        expected_repr = "ChildConfig(is_active=True, name=Test, age=10)"
+        self.assertEqual(repr(self.child_config), expected_repr)
+
+    def tearDown(self):
+        self.child_config = None
 
 
 if __name__ == "__main__":

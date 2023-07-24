@@ -1,20 +1,17 @@
 # Image Utils
 import argparse
-from collections import defaultdict, namedtuple
-from dataclasses import dataclass
+from collections import defaultdict
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 from PIL import Image
-from instacut.utils.io_utils import tqdm
 from transformers import Blip2Processor
 
-from instacut.utils.file_utils import BaseConfig
+from instacut.utils.file_utils import BaseConfig, FileUtils, Question
 from instacut.utils.image.models.blip2models import Blip2WithCustomGeneration
-
-from instacut.utils.file_utils import FileUtils, Question
+from instacut.utils.io_utils import tqdm
 
 ENUM_ADDITION = " Please select one of the following options, or answer with NA if none apply: "
 BOOL_ADDITION = " Please answer yes or no. "
@@ -74,7 +71,7 @@ class ImageUtils:
         )
 
     @torch.no_grad()
-    def query_from_input_image(
+    def queryFromInputImage(
         self,
         files: List[PathObj],
         preprocessing_batch_size: int,
@@ -150,13 +147,16 @@ class ImageUtils:
         query_output = torch.cat(output_list, dim=0)
         return query_output
 
-    def ingest_questions(
-        self, config: Optional[ImageUtilsConfig] = None
+    def parseQuestions(
+        self,
+        custom_questions: Optional[List[Tuple[str]]] = None,
+        config: Optional[ImageUtilsConfig] = None,
     ) -> List[Question]:
         """
-        Parses the questions from the given config file.
+        Parses the questions from the given config file or custom list.
 
         Args:
+            custom_questions (Optional[List[Tuple[str]]], optional): The custom questions to use. Defaults to None.
             config (Optional[ImageUtilsConfig], optional): The config to use. Defaults to None.
 
         Returns:
@@ -166,12 +166,15 @@ class ImageUtils:
         assembled_questions = []
         config = config or self.config
 
-        with open(
-            config.image_prompts,
-            "r",
-        ) as f:
-            questions = [i for i in f.read().strip().split("\n") if i]
-            questions = [i.split("\t") for i in questions[1:]]
+        if custom_questions is not None:
+            questions = custom_questions
+        else:
+            with open(
+                config.image_prompts,
+                "r",
+            ) as f:
+                questions = [i for i in f.read().strip().split("\n") if i]
+                questions = [i.split("\t") for i in questions[1:]]
 
         for question_tuple in questions:
             question = Question(*question_tuple)
@@ -199,7 +202,27 @@ class ImageUtils:
             )
         return assembled_questions
 
-    def generate_answers(self):
+    def generateAnswers(
+        self, custom_questions: Optional[List[Tuple[str]]] = None
+    ):
+        """
+        Generates the answers to the questions for the given image directory or custom
+        list of questions.
+
+        Args:
+            custom_questions (Optional[List[Tuple[str]]], optional): The custom questions to use. Defaults to None.
+
+        Returns:
+            None
+        """
+        # Check if the question answers already exist
+        if (
+            Path(self.config.image_path) / "questions" / "questions.json"
+        ).exists():
+            print(
+                "Questions already answered. Skipping question answering step."
+            )
+            return
         ## INPUT FILES
         # Start by assembling the input files
         image_path = Path(self.config.image_path)
@@ -224,7 +247,7 @@ class ImageUtils:
 
         ## IMAGE PREPROCESSING
         # Get the query outputs for all the images
-        query_output = self.query_from_input_image(
+        query_output = self.queryFromInputImage(
             files,
             preprocessing_batch_size,
         )
@@ -233,7 +256,7 @@ class ImageUtils:
         results_dict = defaultdict(list)
         results_list = []
         for question_obj, parsed_question in tqdm(
-            self.ingest_questions(),
+            self.parseQuestions(custom_questions=custom_questions),
             desc="Processing questions",
             unit="qs",
         ):
@@ -276,7 +299,7 @@ class ImageUtils:
         FileUtils.saveFrameQuestions(
             full_path=Path(self.config.image_path)
             / "questions"
-            / "questions.json",
+            / f"questions{'' if custom_questions is None else '_custom'}.json",
             questions=results_list,
         )
 
@@ -298,4 +321,4 @@ if __name__ == "__main__":
 
     # Initialize the image utils and generate answers
     image_utils = ImageUtils(ImageUtilsConfig.from_file(args.config))
-    image_utils.generate_answers()
+    image_utils.generateAnswers()

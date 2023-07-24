@@ -4,7 +4,7 @@ from typing import List, Optional, Union
 
 import openai
 
-from instacut.utils.prompts import Prompt
+from instacut.utils.prompts.prompts import Prompt
 
 # Get the API key from the environment
 openai.api_key = os.environ.get("OPENAI_API_KEY")

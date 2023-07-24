@@ -1,5 +1,9 @@
 import unittest
-from instacut.modules.transcript_processor import TranscriptProcessor, secondsToMinutes
+
+from instacut.modules.transcript_processor import (
+    TranscriptProcessor,
+    secondsToMinutes,
+)
 
 
 class TestTranscriptProcessor(unittest.TestCase):
@@ -33,14 +37,22 @@ class TestTranscriptProcessor(unittest.TestCase):
             "duration": 50,
             "text": "Hello world This is a test Goodbye",
         }
-        self.assertEqual(self.processor.joinIntervals(input_intervals), expected_output)
+        self.assertEqual(
+            self.processor.joinIntervals(input_intervals), expected_output
+        )
+
+    def test_joinEmptyIntervals(self):
+        input_intervals = []
+        self.assertIsNone(self.processor.joinIntervals(input_intervals))
 
     def test_trimIntervalsToSLong(self):
         expected_output = [
             {"start": 0, "duration": 15, "text": "Hello world"},
             {"start": 15, "duration": 35, "text": "This is a test Goodbye"},
         ]
-        self.assertEqual(self.processor.trimIntervalsToSLong(20), expected_output)
+        self.assertEqual(
+            self.processor.trimIntervalsToSLong(20), expected_output
+        )
 
     def test_seconds_to_minutes(self):
         # Test that 60 seconds is 1 minute.

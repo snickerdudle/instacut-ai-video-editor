@@ -1,13 +1,15 @@
+import json
 import os
 import random
 import tempfile
-import numpy as np
-from PIL import Image
-import torch
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import numpy as np
+import torch
+from PIL import Image
+
 from instacut.utils.image.image_utils import ImageUtils, ImageUtilsConfig
-import json
 
 
 class ImageUtilsTest(unittest.TestCase):
@@ -113,7 +115,7 @@ class ImageUtilsTest(unittest.TestCase):
     def test_ingest_questions(self):
         image_utils = self.create_image_utils(self.temp_dir)
 
-        questions = image_utils.ingest_questions()
+        questions = image_utils.parseQuestions()
         assert len(questions) == 3
         question, parsed_question = questions[1]
         assert question.id == "1"
@@ -143,7 +145,7 @@ class ImageUtilsTest(unittest.TestCase):
             if os.path.isfile(os.path.join(self.temp_dir, f))
         ]
 
-        query_output = image_utils.query_from_input_image(
+        query_output = image_utils.queryFromInputImage(
             image_files, image_utils.config.preprocessing_batch_size
         )
         assert query_output.shape[0] == len(image_files)
@@ -154,7 +156,7 @@ class ImageUtilsTest(unittest.TestCase):
         image_utils = self.create_image_utils(
             tempdir=self.temp_dir, device="cuda:0"
         )
-        image_utils.generate_answers()
+        image_utils.generateAnswers()
 
         questions_dir = os.path.join(self.temp_dir, "questions")
 

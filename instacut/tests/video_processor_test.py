@@ -19,7 +19,10 @@ from instacut.modules.video_processor import (
     VideoProcessorConfig,
 )
 from instacut.utils.llm_utils import OpenAIChat
-from instacut.utils.prompts import video_summarization_prompt_2
+from instacut.utils.prompts.prompts import PromptCollection
+
+prompts = PromptCollection()
+video_summarization_prompt_2 = prompts["2"]
 
 TRANSCRIPT_CONTENTS = "This is a transcript."
 DUMMY_FPS = 25
@@ -225,6 +228,54 @@ class TestVideoProcessor(unittest.TestCase):
             with open(output_file, "r") as f:
                 self.assertEqual(f.read(), TRANSCRIPT_CONTENTS)
 
+    def test_summarize_2(self):
+        """Test the summarize method with prompt_id."""
+        # Create a dummy processed directory using tempdir.
+        with tempfile.TemporaryDirectory() as tempdir:
+            # Create a dummy chat.
+            chat = DummyOpenAIChat.createDummyChat()
+            # Create a dummy video processor.
+            vp_config = VideoProcessorConfig(
+                sampling_policy="u10",
+                output_dir=tempdir,
+                prompt_id="2",
+            )
+            vp = VideoProcessor(vp_config)
+            # Create a dummy video.
+            input_video = DummyVideo.createDummyVideo(
+                "test_for_summarize", tempdir
+            )
+            # Summarize the video.
+            vp.summarize(input_video, custom_chat=chat, save_transcript=True)
+            # Check that the processed directory was created.
+            tempdir = Path(tempdir)
+            self.assertTrue(tempdir.is_dir())
+            self.assertTrue((tempdir / "test_for_summarize").is_dir())
+            self.assertTrue(
+                (tempdir / "test_for_summarize" / "transcript").is_dir()
+            )
+            self.assertTrue(
+                (tempdir / "test_for_summarize" / "summary").is_dir()
+            )
+
+            # Check that the transcript file was created.
+            output_file = (
+                tempdir
+                / "test_for_summarize"
+                / "transcript"
+                / "transcript.txt"
+            )
+            self.assertTrue(output_file.exists())
+
+            # Check that the summary file was created.
+            output_file = (
+                tempdir / "test_for_summarize" / "summary" / "summary.txt"
+            )
+            self.assertTrue(output_file.exists())
+            # Check that the output file contains the summary (same as transcript for this test).
+            with open(output_file, "r") as f:
+                self.assertEqual(f.read(), TRANSCRIPT_CONTENTS)
+
 
 class TestSamplingPolicy(unittest.TestCase):
     def create_dummy_video(self, tempdir):
@@ -253,7 +304,7 @@ class TestSamplingPolicy(unittest.TestCase):
             indeces,
             expected_indeces,
         )
-        frames = sampling_policy.sample(video_capture)
+        frames, _ = sampling_policy.sample(video_capture)
         self.assertEqual(len(frames), len(expected_indeces))
         for frame, idx in zip(frames, expected_indeces):
             self.assertEqual(

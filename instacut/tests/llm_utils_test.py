@@ -1,10 +1,8 @@
 import unittest
 from unittest.mock import patch
 
-from openai import ChatCompletion
-
 from instacut.utils.llm_utils import OpenAIChat, OpenAIContinuousChat
-from instacut.utils.prompts import Prompt
+from instacut.utils.prompts.prompts import Prompt
 
 
 class TestOpenAIChat(unittest.TestCase):

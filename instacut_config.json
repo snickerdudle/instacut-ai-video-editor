@@ -1,0 +1,25 @@
+{
+    "BaseConfig": {
+        "VideoProcessorConfig": {
+            "model": "gpt-3.5-turbo",
+            "sampling_policy": "u10",
+            "output_dir": "./data/",
+            "prompt_id": "3",
+            "video": "https://www.youtube.com/watch?v=KStJfpHsImE",
+            "SummaryConfig": {
+                "save_transcript": true,
+                "use_timestamps": true
+            },
+            "FrameSamplerConfig": {
+                "save_frames": true
+            }
+        },
+        "ImageUtilsConfig": {
+            "device": "0",
+            "batch_size": 256,
+            "preprocessing_batch_size": "1024",
+            "processor": "Salesforce/blip2-flan-t5-xl",
+            "model": "Salesforce/blip2-flan-t5-xl"
+        }
+    }
+}

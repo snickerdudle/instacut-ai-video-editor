@@ -73,6 +73,8 @@ class TranscriptProcessor:
         Returns:
             dict: The joined interval.
         """
+        if not intervals:
+            return None
         output_dict = {}
         # First, clean the text.
         intervals = self.cleanIntervalsText(intervals)
@@ -163,7 +165,8 @@ class TranscriptProcessor:
         # Then, iterate through the intervals and join them.
         output_intervals = []
         for interval_range in intervals:
-            output_intervals.append(self.joinIntervals(interval_range))
+            if interval_range:
+                output_intervals.append(self.joinIntervals(interval_range))
         return output_intervals
 
     def trimIntervalsToSLong(self, s: Optional[Union[int, float]] = 10):
@@ -204,5 +207,6 @@ class TranscriptProcessor:
         # Then, iterate through the intervals and join them.
         output_intervals = []
         for interval_range in intervals:
-            output_intervals.append(self.joinIntervals(interval_range))
+            if interval_range:
+                output_intervals.append(self.joinIntervals(interval_range))
         return output_intervals

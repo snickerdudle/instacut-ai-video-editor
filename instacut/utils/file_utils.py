@@ -4,7 +4,7 @@ import re
 from collections import namedtuple
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 PathObj = Union[str, Path]
 Question = namedtuple(
@@ -72,18 +72,28 @@ class FileUtils:
         return video_dir / "summary"
 
     @classmethod
-    def getVideoFramesOutputDir(cls, video: Any) -> Path:
+    def getVideoFramesOutputDir(
+        cls,
+        video: Any,
+        sampling_policy: Optional[Any] = None,
+    ) -> Path:
         """Gets the directory for the video frames.
 
         Args:
             video (Video): The video.
+            sampling_policy (Optional[SamplingPolicyBaseClass], optional): The
+                sampling policy. If supplied, returns the path to the frames
+                directory for the sampling policy. If not supplied, returns the
+                path to the frames directory for the video.
 
         Returns:
             Path: The directory for the video frames.
         """
         # Get the video dir
-        video_dir = cls.getVideoOutputDir(video)
-        return video_dir / "frames"
+        video_dir = cls.getVideoOutputDir(video) / "frames"
+        if sampling_policy is not None:
+            video_dir = video_dir / sampling_policy.name
+        return video_dir
 
     @classmethod
     def saveTextFile(cls, full_path: PathObj, text: str) -> Path:
@@ -147,8 +157,7 @@ class FileUtils:
             Path: The path to the saved frames.
         """
         # Get the video dir
-        frames_dir = cls.getVideoFramesOutputDir(video)
-        frames_dir = frames_dir / sampling_policy.name
+        frames_dir = cls.getVideoFramesOutputDir(video, sampling_policy)
         frames_dir.mkdir(parents=True, exist_ok=True)
         for frame in frames:
             frame.saveToDir(frames_dir)
@@ -243,6 +252,15 @@ class FileUtils:
 
 
 class BaseConfig:
+    def __init__(self, **kwargs):
+        self.subconfigs = kwargs
+
+    def __getitem__(self, key):
+        return self.subconfigs[key]
+
+    def __contains__(self, key):
+        return key in self.subconfigs
+
     @classmethod
     def from_file(cls, path: PathObj):
         """Loads a config from a file.
@@ -262,14 +280,70 @@ class BaseConfig:
         with open(path, "r") as f:
             config = json.load(f)
 
+        return cls.from_dict(config)
+
+    @classmethod
+    def from_dict(cls, config_dict: dict):
+        """Loads a config from a dict.
+
+        Args:
+            config_dict (dict): The config dict.
+        Returns:
+            BaseConfig: The config.
+        """
         # The different portions of the config are stored in different keys. The
         # key for the config is the class name. Retrieve the key for the config
         # from the class name.
         config_key = cls.__name__
-        config = config.get(config_key)
+        config = config_dict.get(config_key)
 
         if config is None:
             raise ValueError(
-                f"Config file {path} does not contain a config for {config_key}."
+                f"Config dict does not contain a config for {config_key}."
             )
         return cls(**config)
+
+    @classmethod
+    def from_parent_config(
+        cls,
+        parent_config: "BaseConfig",
+        create_empty_as_fallback=True,
+        **kwargs,
+    ):
+        """Creates a config from a parent config.
+
+        Args:
+            parent_config (BaseConfig): The parent config.
+            create_empty_as_fallback (bool, optional): Whether to create an
+                empty config if the parent config does not have a config for
+                this class. Defaults to True.
+            **kwargs: The config kwargs.
+
+        Returns:
+            BaseConfig: The config.
+        """
+        # Create a new config from the parent config
+        config_dict = parent_config.subconfigs
+        class_name = cls.__name__
+        if (config_dict is None) or (class_name not in config_dict):
+            if create_empty_as_fallback:
+                # The parent config does not have a config for this class
+                config = cls(**kwargs)
+                return config
+            else:
+                raise ValueError(
+                    f"Parent config does not have a config for {class_name}."
+                )
+
+        config_dict[class_name].update(**kwargs)
+        config = cls.from_dict(config_dict)
+        return config
+
+    def __repr__(self):
+        # Get all the vars to be displayed
+        vars = self.__dict__.copy()
+        # Remove the subconfigs
+        vars.pop("subconfigs", None)
+        # Convert to a string
+        s = ", ".join([f"{k}={v}" for k, v in vars.items()])
+        return f"{self.__class__.__name__}({s})"

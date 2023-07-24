@@ -1,4 +1,5 @@
 from functools import partial
+
 import tqdm as tt
 
 # Create a partial tqdm function, filling in the default values with

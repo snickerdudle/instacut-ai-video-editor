@@ -1,0 +1,44 @@
+{
+    "data": {
+        "prompt_template": {
+            "1": "Below is a transcript of a video without any timestamps. Analyze the content of the video, and create a detailed section-by-section breakdown of the progression of the video and the topics discussed. Organize the sections hierarchically, grouping individual events into larger themes, then into larger ones, and on and on until you've grouped everything into the overarching video group. Instead of creating long, comma-separated descriptions, bias towards listing the same elements as sub-items of the current item. Return the analysis in the form of an indented list, imitating the formatting of this example:\n{self.aux_text[0]}\n\nVIDEO TRANSCRIPT:\n{self.input_text}",
+            "2": "Please organize the provided video transcript into a hierarchical outline. Each line in the transcript corresponds to a specific level in the outline. The lines at the same indentation level should be grouped together. Make sure to follow the formatting guidelines below for consistent output:\n\n{self.aux_text[0]}\n\nYour task is to generate a hierarchical outline for the provided video transcript, strictly formatted using the guidelines provided above. Ensure that the formatting of section titles and numbering is consistent with the guidelines provided above.\n\nExample:{self.aux_text[1]}\n\nTranscript:\n\n{self.input_text}",
+            "3": "Please organize the provided video transcript into a hierarchical outline, including the relevant video timestamps next to each section. The transcript is a series of lines of text, each corresponding to a specific point in the video. The lines are prepended by a timestamp, in increasing order, when they are spoken in the video. The outline you are to generate should be a layered summarization of the entire content of the video, and each line in the outline should correspond to a range of content in the transcript. In the outline, the lines at the same indentation level should be grouped together. Make sure to follow the formatting guidelines below for consistent output:\n\nGUIDELINES:\n{self.aux_text[0]}\n\nTASK:\nYour task is to generate a hierarchical outline for the provided video transcript, strictly formatted using the guidelines provided above. Be detailed in your summarization of the different sections of the video, and ensure that the formatting of section titles, numbering and video timestamps is consistent with the guidelines provided above. The timestamps you include in the outline should indicate the *beginning* time of that section, in other words the first instance that that section's topic was being discussed in the transcript. Bias towards going three or even four levels deep in the structure of the outline, making sure to not leave out important aspects of the video transcript from the hierarchy.\n\nEXAMPLE OUTLINE:\n{self.aux_text[1]}\n\nNEW VIDEO TRANSCRIPT:\n{self.input_text}\n\nYOUR OUTLINE:\n"
+        },
+        "aux_text": {
+            "1": [
+                "-Video\n--Intro\n---Describing the adventure\n----The narrator provides an overview of the upcoming adventure, setting the stage for the thrilling journey ahead.\n--Team Explores\n---Discovering the unknown\n----The adventurers exploring mysterious landscapes and encountering breathtaking sights.\n---Uncovering hidden treasures\n----They stumble upon hidden clues, solve intricate puzzles, and unearth valuable artifacts.\n--Difficulties ensue\n---Overcoming obstacles\n----The team faces treacherous terrains, tricky riddles, and physical tests of strength and skill.\n---Facing dangerous creatures\n----They encounter fierce creatures guarding the path to their goal.\n-----Gorgoyles\n-----Mutants\n-----Giant spiders\n-----Venomous snakes\n--Coming out on top\n---Epic battle\n----The adventurers face a formidable enemy or group of adversaries.\n-----Enemy is scared of sunlight\n-----Enemy is allergic to silver\n---Revealing the ultimate secret\n----The adventurers discover the long-guarded secret that holds immense power or knowledge.\n-----The secret to eternal life\n-----The secret to unlimited wealth\n-----The secret to ultimate power"
+            ],
+            "2": [
+                "1. Use a dash (-) followed by the number and item name for the main sections.\n2. Use two dashes (--) followed by the number and item name for the subsections.\n3. Use three dashes (---) followed by the number and item name for the sub-subsections.\n4. For each item, include its corresponding number based on the indentation level, for example 2.3.1 being section 2, subsection 3, sub-subsection 1.",
+                "-1 Introduction\n--1.1 The illusion of the universe\n--1.2 The intergalactic medium as raw materials\n--1.3 Quasars as the most powerful objects in existence\n--1.4 The power of quasars in molding the structure of the universe\n-2 Quasars\n--2.1 The discovery of quasars\n--2.2 Characteristics of quasars\n--2.3 The power source of quasars\n---2.3.1 Supermassive black holes\n---2.3.2 Accretion disks\n---2.3.3 Matter conversion\n--2.4 The incredible power of quasars\n---2.4.1 Feeding habits\n---2.4.2 Energy output greater than stars\n--2.5 Jet formation\n--2.6 Quasar lifespan\n---2.6.1 Effect on galaxies\n---2.6.2 Impact on star formation\n-3 The Milky Way and Quasars\n--3.1 Preserving galactic history\n--3.2 The possibility of the Milky Way being a quasar\n--3.3 The future of Sagittarius A star\n--3.4 The merger of Andromeda\n---3.4.1 Double quasars\n---3.4.2 Future of the Milky Way\n-4 Lessons from Brilliant.org\n--4.1 Interactive learning tool\n--4.2 Black hole lesson\n--4.3 Additional lessons\n-5 Conclusion\n--5.1 Limited edition pin: Dyson Sphere\n--5.2 Future limited edition pins"
+            ],
+            "3": [
+                "1. Use a dash (-) followed by the item name for the main sections. Include the corresponding transcript timestamp in square brackets at the beginning of the line, like [00:00].\n2. Use two dashes (--) followed by the item name for the subsections. Include the corresponding transcript timestamp in square brackets at the beginning of the line, like [02:15].\n3. Use three dashes (---) followed by the item name for the sub-subsections. Include the corresponding transcript timestamp in square brackets at the beginning of the line, like [03:04].\n4. For each item, include its corresponding number based on the indentation level.",
+                "[00:00] - 1. Introduction\n[00:00] -- 1.1 Speaker's Background\n[00:00] --- 1.1.1 Education\n[03:15] --- 1.1.2 Work Experience\n[03:45] -- 1.2 Topic Overview\n[05:30] - 2. Main Points\n[05:30] -- 2.1 Point 1\n[05:30] --- 2.1.1 Supporting Evidence 1\n[06:45] --- 2.1.2 Supporting Evidence 2\n[07:30] -- 2.2 Point 2\n[07:30] --- 2.2.1 Supporting Evidence 1\n[08:00] --- 2.2.2 Supporting Evidence 2\n[08:00] ---- 2.2.2.1 Sub-sub-point 1\n[08:30] ---- 2.2.2.2 Sub-sub-point 2\n[09:00] -- 2.3 Point 3\n[09:00] --- 2.3.1 Supporting Evidence 1\n[09:30] --- 2.3.2 Supporting Evidence 2\n[10:20] - 3. Conclusion\n[10:20] -- 3.1 Summary of Key Points\n[11:30] -- 3.2 Closing Remarks\n\nNote: This example assumes a video duration of around 12 minutes. The timestamps will vary based on the actual video duration and content."
+            ]
+        }
+    },
+    "configs": {
+        "1": {
+            "aux_text_id": "1",
+            "prompt_template_id": "1",
+            "additional_params": {},
+            "description": "First attempt at video transcript summarization."
+        },
+        "2": {
+            "aux_text_id": "2",
+            "prompt_template_id": "2",
+            "additional_params": {},
+            "description": "Better video transcript summarization."
+        },
+        "3": {
+            "aux_text_id": "3",
+            "prompt_template_id": "3",
+            "additional_params": {
+                "include_timestamps": true
+            },
+            "description": "Video transcript summarization with timestamps."
+        }
+    }
+}

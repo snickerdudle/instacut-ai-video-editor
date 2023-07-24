@@ -6,21 +6,21 @@ import re
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import cv2
 import imutils
 from pytube import YouTube
-from instacut.utils.io_utils import tqdm
 from youtube_transcript_api import YouTubeTranscriptApi
 
 from instacut.modules.transcript_processor import (
     TranscriptProcessor,
     secondsToMinutes,
 )
-from instacut.utils.file_utils import FileUtils
+from instacut.utils.file_utils import BaseConfig, FileUtils
+from instacut.utils.io_utils import tqdm
 from instacut.utils.llm_utils import OpenAIChat
-from instacut.utils.prompts import Prompt
+from instacut.utils.prompts.prompts import Prompt, PromptCollection
 
 PathObj = Union[str, Path]
 # A VideoObj is either a Video object or a URL.
@@ -226,7 +226,7 @@ class Video:
         self,
         sampling_policy: "SamplingPolicyBaseClass",
         save_frames: Optional[bool] = False,
-    ) -> List[Frame]:
+    ) -> Tuple[List[Frame], PathObj]:
         """Sample the frames of the video.
 
         Args:
@@ -269,20 +269,30 @@ class SamplingPolicyBaseClass:
         self,
         video: Union[Video, cv2.VideoCapture],
         save_frames: Optional[bool] = False,
-    ) -> List[Frame]:
+    ) -> Tuple[List[Frame], PathObj]:
         """Sample frames from the video.
 
         Args:
             video (Video): The video to sample.
             save_frames (Optional[bool], optional): Whether to save the frames to a file. Defaults to False.
         Returns:
-            List[Frame]: The sampled frames.
+            Tuple[List[Frame], PathObj]: The sampled frames and the path to the frames directory.
         """
         if isinstance(video, Video):
+            # Check to see if the video frames already exist.
+            frames_dir = FileUtils.getVideoFramesOutputDir(video, self)
+            if frames_dir.exists() and len(list(frames_dir.iterdir())) > 0:
+                # The frames already exist, so no need to regenerate.
+                logging.info(
+                    f"The frames for {video.metadata.name} already exist. Skipping."
+                )
+                return None, frames_dir
+
             video_file_path = video.procureFile()
             video_capture = cv2.VideoCapture(str(video_file_path))
         else:
             video_capture = video
+            frames_dir = None
         fps = video_capture.get(cv2.CAP_PROP_FPS)
         indeces = self.getSamplingIndeces(video_capture)
         output_frames = []
@@ -304,7 +314,7 @@ class SamplingPolicyBaseClass:
         if save_frames:
             self.save_frames(video, output_frames)
         video_capture.release()
-        return output_frames
+        return output_frames, frames_dir
 
     def save_frames(self, video, frames):
         """Save the frames to separate files. Use the video's output directory.
@@ -432,18 +442,25 @@ class RandomSamplingPolicy(SamplingPolicyBaseClass):
         return output_indeces
 
 
-class VideoProcessorConfig:
+class VideoProcessorConfig(BaseConfig):
     """Class for the configuration of a video processing job."""
 
     def __init__(
         self,
         sampling_policy: Union[SamplingPolicyBaseClass, str],
         output_dir: PathObj,
-        prompt: Union[Prompt, str],
+        prompt: Optional[Union[Prompt, str]] = None,
+        prompt_id: Optional[str] = None,
+        model: Optional[str] = None,
+        video: Optional[Union[VideoObj, List[VideoObj]]] = None,
+        **kwargs,
     ) -> None:
         self.sampling_policy = self._retrieve_sampling_policy(sampling_policy)
-        self.output_dir = Path(output_dir)
-        self.prompt = prompt
+        self.output_dir = Path(output_dir).resolve()
+        self.prompt = prompt or PromptCollection()[prompt_id]
+        self.model = model
+        self.video = video
+        super().__init__(**kwargs)
 
     def _retrieve_sampling_policy(self, sampling_policy: str):
         """Retrieve the sampling policy."""
@@ -489,6 +506,24 @@ class VideoProcessorConfig:
         )
 
 
+class SummaryConfig(BaseConfig):
+    def __init__(
+        self,
+        save_transcript: Optional[bool] = False,
+        use_timestamps: Optional[bool] = True,
+        **kwargs,
+    ):
+        self.save_transcript = save_transcript
+        self.use_timestamps = use_timestamps
+        super().__init__(**kwargs)
+
+
+class FrameSamplerConfig(BaseConfig):
+    def __init__(self, save_frames: Optional[bool] = False, **kwargs):
+        self.save_frames = save_frames
+        super().__init__(**kwargs)
+
+
 class VideoProcessor:
     """Class for processing a video or a set of videos."""
 
@@ -501,7 +536,7 @@ class VideoProcessor:
 
     def summarize(
         self,
-        video: Union[VideoObj, List[VideoObj]],
+        video: Optional[Union[VideoObj, List[VideoObj]]] = None,
         model: Optional[str] = None,
         use_timestamps: bool = False,
         save_transcript: bool = False,
@@ -519,16 +554,28 @@ class VideoProcessor:
         Returns:
             int: The number of videos summarized.
         """
+        # Resolve config inputs
+        sc = SummaryConfig.from_parent_config(self.config)
+
+        video = video or self.config.video
+        model = model or self.config.model
+        use_timestamps = use_timestamps or sc.use_timestamps
+        save_transcript = save_transcript or sc.save_transcript
+
         if not isinstance(video, list):
             video = [video]
         videos = Video.convertAllToVideo(
             video, output_dir=Path(self.config.output_dir)
         )
         for video in tqdm(videos, desc="Summarizing videos", unit="video"):
+            print('Performing summarization on "{}"'.format(video))
             name = video.get_unix_name()
             # Check if exists already to not burn through API calls.
-            if (Path(self.config.output_dir) / (name + ".txt")).exists():
-                print('File "{}" already exists. Skipping'.format(name))
+            if (
+                self.file_processor.getVideoSummaryOutputDir(video)
+                / "summary.txt"
+            ).exists():
+                print(f'File "{name}" summary already exists. Skipping')
                 continue
             transcript = video.getTranscript(use_timestamps=use_timestamps)
             if save_transcript:
@@ -559,18 +606,28 @@ class VideoProcessor:
             video (Union[VideoObj, List[VideoObj]]): The video(s) to sample.
             save_frames (Optional[bool], optional): Whether to save the sampled frames. Defaults to False.
         Returns:
-            Union[List[Frame], List[List[Frame]]]: The sampled frames."""
+            Union[List[Frame], List[List[Frame]]]: The sampled frames.
+        """
+        # Resolve config inputs
+        fsc = FrameSamplerConfig.from_parent_config(self.config)
+
+        video = video or self.config.video
+        save_frames = save_frames or fsc.save_frames
+
         # Validate video
         videos = Video.convertAllToVideo(
             video, output_dir=Path(self.config.output_dir)
         )
         if isinstance(videos, Video):
-            return videos.sample(
-                self.config.sampling_policy, save_frames=save_frames
-            )
+            return [
+                videos.sample(
+                    self.config.sampling_policy, save_frames=save_frames
+                )
+            ]
         else:
             output_samples = []
             for video in videos:
+                # Frames and directory where the frames are stored
                 output_samples.append(
                     video.sample(
                         self.config.sampling_policy, save_frames=save_frames
