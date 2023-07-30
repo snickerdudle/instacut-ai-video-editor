@@ -1,6 +1,6 @@
 import unittest
 
-from instacut.modules.transcript_processor import (
+from src.modules.transcript_processor import (
     TranscriptProcessor,
     secondsToMinutes,
 )

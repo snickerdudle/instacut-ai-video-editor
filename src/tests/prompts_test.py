@@ -1,6 +1,6 @@
 import unittest
 
-from instacut.utils.prompts.prompts import Prompt
+from src.utils.prompts.prompts import Prompt
 
 
 class TestPrompt(unittest.TestCase):

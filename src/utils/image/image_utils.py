@@ -9,9 +9,9 @@ import torch
 from PIL import Image
 from transformers import Blip2Processor
 
-from instacut.utils.file_utils import BaseConfig, FileUtils, Question
-from instacut.utils.image.models.blip2models import Blip2WithCustomGeneration
-from instacut.utils.io_utils import tqdm
+from src.utils.file_utils import BaseConfig, FileUtils, Question
+from src.utils.image.models.blip2models import Blip2WithCustomGeneration
+from src.utils.io_utils import tqdm
 
 ENUM_ADDITION = " Please select one of the following options, or answer with NA if none apply: "
 BOOL_ADDITION = " Please answer yes or no. "

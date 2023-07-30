@@ -3,13 +3,13 @@ from queue import Queue
 from typing import Optional, List, Tuple
 import torch
 
-from instacut.modules.video_processor import (
+from src.modules.video_processor import (
     Frame,
     VideoProcessor,
     VideoProcessorConfig,
 )
-from instacut.utils.file_utils import BaseConfig
-from instacut.utils.image.image_utils import ImageUtils, ImageUtilsConfig
+from src.utils.file_utils import BaseConfig
+from src.utils.image.image_utils import ImageUtils, ImageUtilsConfig
 
 
 class InstacutRunner:

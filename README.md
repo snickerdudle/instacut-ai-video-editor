@@ -1,4 +1,4 @@
-# video-editing
+# InstaCut
 
 This library contains a collection of scripts for automatic video editing. There are 3 main types of script in this library:
 

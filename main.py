@@ -1,6 +1,6 @@
 import argparse
 
-from instacut.runner import InstacutRunner
+from src.runner import InstacutRunner
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

@@ -13,14 +13,14 @@ import imutils
 from pytube import YouTube
 from youtube_transcript_api import YouTubeTranscriptApi
 
-from instacut.modules.transcript_processor import (
+from src.modules.transcript_processor import (
     TranscriptProcessor,
     secondsToMinutes,
 )
-from instacut.utils.file_utils import BaseConfig, FileUtils
-from instacut.utils.io_utils import tqdm
-from instacut.utils.llm_utils import OpenAIChat
-from instacut.utils.prompts.prompts import Prompt, PromptCollection
+from src.utils.file_utils import BaseConfig, FileUtils
+from src.utils.io_utils import tqdm
+from src.utils.llm_utils import OpenAIChat
+from src.utils.prompts.prompts import Prompt, PromptCollection
 
 PathObj = Union[str, Path]
 # A VideoObj is either a Video object or a URL.

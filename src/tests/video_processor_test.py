@@ -8,8 +8,8 @@ from typing import Optional, Union
 import cv2
 import numpy as np
 
-import instacut.modules.video_processor as vp_module
-from instacut.modules.video_processor import (
+import src.modules.video_processor as vp_module
+from src.modules.video_processor import (
     RandomSamplingPolicy,
     UniformFramesSamplingPolicy,
     UniformSecondsSamplingPolicy,
@@ -18,8 +18,8 @@ from instacut.modules.video_processor import (
     VideoProcessor,
     VideoProcessorConfig,
 )
-from instacut.utils.llm_utils import OpenAIChat
-from instacut.utils.prompts.prompts import PromptCollection
+from src.utils.llm_utils import OpenAIChat
+from src.utils.prompts.prompts import PromptCollection
 
 prompts = PromptCollection()
 video_summarization_prompt_2 = prompts["2"]

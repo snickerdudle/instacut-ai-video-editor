@@ -10,7 +10,7 @@ import numpy as np
 import torch
 from PIL import Image
 
-from instacut.utils.image.image_utils import ImageUtils, ImageUtilsConfig
+from src.utils.image.image_utils import ImageUtils, ImageUtilsConfig
 
 
 class ImageUtilsTest(unittest.TestCase):
@@ -102,7 +102,7 @@ class ImageUtilsTest(unittest.TestCase):
         )
 
     @patch(
-        "instacut.utils.image.models.blip2models.Blip2WithCustomGeneration.from_pretrained"
+        "src.utils.image.models.blip2models.Blip2WithCustomGeneration.from_pretrained"
     )
     @patch("transformers.Blip2Processor.from_pretrained")
     def test_model_initialization(self, mock_processor, mock_model):

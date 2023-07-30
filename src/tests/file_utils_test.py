@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
 
-from instacut.utils.file_utils import BaseConfig, FileUtils
+from src.utils.file_utils import BaseConfig, FileUtils
 
 
 class TestUrlAndFile(unittest.TestCase):
