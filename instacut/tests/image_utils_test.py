@@ -3,6 +3,7 @@ import os
 import random
 import tempfile
 import unittest
+from typing import List, Tuple
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -32,15 +33,8 @@ class ImageUtilsTest(unittest.TestCase):
         return temp_dir
 
     @staticmethod
-    def create_questions(
-        num_questions: int = 3,
-        temp_dir: str = None,
-    ):
-        temp_dir = temp_dir or tempfile.mkdtemp()
-
-        questions = [
-            "ID\tVersion\tTopic\tQuestion\tOptions\tType",
-        ]
+    def create_sample_questions(num_questions: int = 3) -> List[Tuple[str]]:
+        questions = []
         for i in range(num_questions):
             cur_question = []
             # ID
@@ -58,7 +52,26 @@ class ImageUtilsTest(unittest.TestCase):
             # Type
             cur_question.append("ENUM")
 
-            questions.append("\t".join(cur_question))
+            questions.append(tuple(cur_question))
+
+        return questions
+
+    @staticmethod
+    def create_and_store_sample_questions(
+        num_questions: int = 3,
+        temp_dir: str = None,
+    ):
+        temp_dir = temp_dir or tempfile.mkdtemp()
+
+        questions = [
+            "ID\tVersion\tTopic\tQuestion\tOptions\tType",
+        ]
+
+        generated_questions = ImageUtilsTest.create_sample_questions(
+            num_questions=num_questions
+        )
+        for q in generated_questions:
+            questions.append("\t".join(q))
 
         os.makedirs(os.path.join(temp_dir, "questions"), exist_ok=True)
         with open(
@@ -84,7 +97,9 @@ class ImageUtilsTest(unittest.TestCase):
 
     def setUp(self):
         self.temp_dir = self.create_random_images(num_images=10)
-        self.create_questions(num_questions=3, temp_dir=self.temp_dir)
+        self.create_and_store_sample_questions(
+            num_questions=3, temp_dir=self.temp_dir
+        )
 
     @patch(
         "instacut.utils.image.models.blip2models.Blip2WithCustomGeneration.from_pretrained"
@@ -94,8 +109,8 @@ class ImageUtilsTest(unittest.TestCase):
         # Regenerate the image_utils object with the patched model and processor
         image_utils = self.create_image_utils(self.temp_dir)
 
-        assert isinstance(image_utils.model, MagicMock)
-        assert isinstance(image_utils.processor, MagicMock)
+        self.assertIsInstance(image_utils.model, MagicMock)
+        self.assertIsInstance(image_utils.processor, MagicMock)
 
         mock_processor.assert_called_with(image_utils.config.processor)
         mock_model.assert_called_with(
@@ -104,33 +119,64 @@ class ImageUtilsTest(unittest.TestCase):
             torch_dtype=torch.float16,
         )
 
-        assert image_utils.config.batch_size == 4
-        assert image_utils.config.preprocessing_batch_size == 8
-        assert image_utils.config.image_prompts == os.path.join(
-            self.temp_dir, "questions", "questions.tsv"
+        self.assertEqual(image_utils.config.batch_size, 4)
+        self.assertEqual(image_utils.config.preprocessing_batch_size, 8)
+        self.assertEqual(
+            image_utils.config.image_prompts,
+            os.path.join(self.temp_dir, "questions", "questions.tsv"),
         )
-        assert image_utils.config.processor == "Salesforce/blip2-flan-t5-xl"
-        assert image_utils.config.model == "Salesforce/blip2-flan-t5-xl"
+        self.assertEqual(
+            image_utils.config.processor, "Salesforce/blip2-flan-t5-xl"
+        )
+        self.assertEqual(
+            image_utils.config.model, "Salesforce/blip2-flan-t5-xl"
+        )
 
-    def test_ingest_questions(self):
+    def test_parse_questions(self):
         image_utils = self.create_image_utils(self.temp_dir)
 
         questions = image_utils.parseQuestions()
-        assert len(questions) == 3
+        self.assertEqual(len(questions), 3)
         question, parsed_question = questions[1]
-        assert question.id == "1"
-        assert question.version == "0"
-        assert question.topic.isnumeric()
-        assert (
-            question.question
-            == "What color do you get if you mix yellow and blue?"
+        self.assertEqual(question.id, "1")
+        self.assertEqual(question.version, "0")
+        self.assertTrue(question.topic.isnumeric())
+        self.assertEqual(
+            question.question,
+            "What color do you get if you mix yellow and blue?",
         )
-        assert question.type == "ENUM"
+        self.assertEqual(question.type, "ENUM")
 
-        assert (
-            parsed_question
-            == "Please answer the following question:\nWhat color do you get if you mix yellow and blue? Please select one of the following options, or answer with NA if none apply: [red, green, purple, orange]\nYour answer: "
+        self.assertEqual(
+            parsed_question,
+            "Please answer the following question:\nWhat color do you get if you mix yellow and blue? Please select one of the following options, or answer with NA if none apply: [red, green, purple, orange]\nYour answer: ",
         )
+
+    def test_parse_questions_custom_questions(self):
+        image_utils = self.create_image_utils(self.temp_dir)
+
+        questions = ImageUtilsTest.create_sample_questions(num_questions=15)
+
+        questions = image_utils.parseQuestions(custom_questions=questions)
+        self.assertEqual(len(questions), 15)
+        for question, parsed_question in questions:
+            self.assertTrue(question.id.isnumeric())
+            self.assertTrue(question.version.isnumeric())
+            self.assertTrue(question.topic.isnumeric())
+            self.assertEqual(
+                question.question,
+                "What color do you get if you mix yellow and blue?",
+            )
+            self.assertEqual(question.type, "ENUM")
+            self.assertIn("red", question.options)
+            self.assertIn("green", question.options)
+            self.assertIn("purple", question.options)
+            self.assertIn("orange", question.options)
+
+            self.assertEqual(
+                parsed_question,
+                "Please answer the following question:\nWhat color do you get if you mix yellow and blue? Please select one of the following options, or answer with NA if none apply: [red, green, purple, orange]\nYour answer: ",
+            )
 
     def test_query_from_input_image(self):
         image_utils = self.create_image_utils(
@@ -148,9 +194,9 @@ class ImageUtilsTest(unittest.TestCase):
         query_output = image_utils.queryFromInputImage(
             image_files, image_utils.config.preprocessing_batch_size
         )
-        assert query_output.shape[0] == len(image_files)
-        assert query_output.shape[1] == 32
-        assert query_output.shape[2] == 768
+        self.assertEqual(query_output.shape[0], len(image_files))
+        self.assertEqual(query_output.shape[1], 32)
+        self.assertEqual(query_output.shape[2], 768)
 
     def test_generate_answers(self):
         image_utils = self.create_image_utils(
@@ -161,15 +207,17 @@ class ImageUtilsTest(unittest.TestCase):
         questions_dir = os.path.join(self.temp_dir, "questions")
 
         # Make sure that the questions.json file was created
-        assert os.path.isfile(os.path.join(questions_dir, "questions.json"))
+        self.assertTrue(
+            os.path.isfile(os.path.join(questions_dir, "questions.json"))
+        )
 
         # Process the JSON and make sure that the answers are correct
         with open(os.path.join(questions_dir, "questions.json"), "r") as f:
             questions = json.load(f)
 
-        assert len(questions) == 3
+        self.assertEqual(len(questions), 3)
         for q in questions:
             answers = q[1]
-            assert len(answers) == 10
+            self.assertEqual(len(answers), 10)
             for a in answers:
-                assert a == "green"
+                self.assertEqual(a, "green")

@@ -11,3 +11,7 @@ pillow
 timm
 matplotlib
 tiktoken
+flask
+flask_socketio
+eventlet
+redis

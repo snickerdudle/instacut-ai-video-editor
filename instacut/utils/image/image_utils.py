@@ -16,6 +16,7 @@ from instacut.utils.io_utils import tqdm
 ENUM_ADDITION = " Please select one of the following options, or answer with NA if none apply: "
 BOOL_ADDITION = " Please answer yes or no. "
 LIST_STR_ADDITION = " If yes, please list all that apply, comma-separated (item1, item2, item3 ...). Otherwise, answer with NA."
+INT_ADDITION = " Please answer with a number. "
 
 PathObj = Union[str, Path]
 
@@ -188,6 +189,8 @@ class ImageUtils:
                 parsed_question += BOOL_ADDITION
             elif question.type == "LIST_STR":
                 parsed_question += LIST_STR_ADDITION
+            elif question.type == "INT":
+                parsed_question += INT_ADDITION
 
             parsed_question = (
                 "Please answer the following question:\n"
@@ -218,7 +221,7 @@ class ImageUtils:
         # Check if the question answers already exist
         if (
             Path(self.config.image_path) / "questions" / "questions.json"
-        ).exists():
+        ).exists() and custom_questions is None:
             print(
                 "Questions already answered. Skipping question answering step."
             )

@@ -17,7 +17,32 @@ if __name__ == "__main__":
     config_file = args.config
     instacut_runner = InstacutRunner(config_file)
 
+    input_url = "https://www.youtube.com/watch?v=e-P5IFTqB98&t=140s"
+
     # Run the InstacutRunner
-    instacut_runner.run_all(
-        input_url="https://www.youtube.com/watch?v=e3RRycSmd5A"
+    instacut_runner.run_all(input_url=input_url)
+
+    # ID, Version, Topic, Question, Options, Type
+    custom_questions = [
+        (
+            "101",
+            "0",
+            "Yellow submarines",
+            "How many yellow submarines are there in this frame?",
+            "",
+            "INT",
+        ),
+        (
+            "102",
+            "0",
+            "Yellow submarines color",
+            "If you saw a Yellow Submarine underwater, what color would it be?",
+            "",
+            "STR",
+        ),
+    ]
+
+    instacut_runner.run_qa(
+        input_url=input_url,
+        custom_questions=custom_questions,
     )
